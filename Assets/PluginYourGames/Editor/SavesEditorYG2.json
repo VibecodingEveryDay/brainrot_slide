@@ -1,0 +1,101 @@
+{
+    "balanceCount": 1415915850,
+    "balanceScaler": "",
+    "Brainrots": [],
+    "PlayerSpeedLevel": 38,
+    "OpeningLevel": 0,
+    "PlacedBrainrots": [
+        {
+            "placementID": 3,
+            "brainrotName": "KetupatKepat",
+            "level": 0,
+            "rarity": "Rare",
+            "baseIncome": 998
+        },
+        {
+            "placementID": 2,
+            "brainrotName": "TralaleroTralala",
+            "level": 20,
+            "rarity": "Exclusive",
+            "baseIncome": 903
+        }
+    ],
+    "EarnPanelBalances": [
+        {
+            "panelID": 4,
+            "accumulatedBalance": 0.0
+        },
+        {
+            "panelID": 3,
+            "accumulatedBalance": 439120.0
+        },
+        {
+            "panelID": 2,
+            "accumulatedBalance": 16877070.0
+        },
+        {
+            "panelID": 5,
+            "accumulatedBalance": 0.0
+        },
+        {
+            "panelID": 1,
+            "accumulatedBalance": 0.0
+        },
+        {
+            "panelID": 0,
+            "accumulatedBalance": 0.0
+        },
+        {
+            "panelID": 6,
+            "accumulatedBalance": 0.0
+        },
+        {
+            "panelID": 7,
+            "accumulatedBalance": 0.0
+        },
+        {
+            "panelID": 11,
+            "accumulatedBalance": 0.0
+        },
+        {
+            "panelID": 15,
+            "accumulatedBalance": 793440.0
+        },
+        {
+            "panelID": 12,
+            "accumulatedBalance": 0.0
+        },
+        {
+            "panelID": 14,
+            "accumulatedBalance": 0.0
+        },
+        {
+            "panelID": 13,
+            "accumulatedBalance": 0.0
+        },
+        {
+            "panelID": 10,
+            "accumulatedBalance": 3706650.0
+        }
+    ],
+    "AttackPowerLevel": 0,
+    "CurrentUltimate": "IsStrongBeat1",
+    "UnlockedLadders": [],
+    "HiddenWalls": [
+        1,
+        2
+    ],
+    "RemovedNpcGuyIds": [
+        "NpcGuy_1_Npc1",
+        "NpcGuy_2_Npc2"
+    ],
+    "intExample": 5,
+    "strExample": "Hello!",
+    "boolExample": [
+        false,
+        false,
+        false,
+        false
+    ],
+    "idSave": 39390
+}
