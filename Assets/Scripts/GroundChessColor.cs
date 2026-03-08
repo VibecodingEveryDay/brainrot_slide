@@ -15,6 +15,13 @@ public class GroundChessColor : MonoBehaviour
     [Tooltip("Материал, который сейчас стоит на ТЁМНЫХ ячейках (образец).")]
     [SerializeField] private Material darkCellMaterialSample;
 
+    [Header("Объединённый меш (ProBuilder)")]
+    [Tooltip("Включить, если земля — один объединённый меш. Цвет задаётся шейдером по мировой позиции (материал должен использовать шейдер Ground/ChessGround).")]
+    [SerializeField] private bool useMergedMesh = false;
+
+    [Tooltip("Размер клетки в мировых единицах (только для режима объединённого меша). Одна клетка = 5x5 по albedo.")]
+    [SerializeField] private float mergedCellSize = 5f;
+
     [Header("Настройки цвета")]
     [Tooltip("Базовый цвет шахматного поля (по нему считается светлая/тёмная ячейка).")]
     [SerializeField] private Color baseColor = new Color(0.3f, 0.8f, 0.3f, 1f);
@@ -25,6 +32,12 @@ public class GroundChessColor : MonoBehaviour
 
     [Tooltip("Применять перекраску автоматически в Start(). Если выключить — вызывай ApplyChessColor() вручную.")]
     [SerializeField] private bool applyOnStart = true;
+
+    private static readonly int ChessColorLightId = Shader.PropertyToID("_ChessColorLight");
+    private static readonly int ChessColorDarkId = Shader.PropertyToID("_ChessColorDark");
+    private static readonly int ChessCellSizeId = Shader.PropertyToID("_ChessCellSize");
+
+    private static Shader _chessGroundShader;
 
     private readonly List<Renderer> _lightCells = new List<Renderer>();
     private readonly List<Renderer> _darkCells = new List<Renderer>();
@@ -86,25 +99,55 @@ public class GroundChessColor : MonoBehaviour
     [ContextMenu("Apply Chess Color")]
     public void ApplyChessColor()
     {
-        // Пересчитать клетки на случай изменений в иерархии
-        if (_lightCells.Count == 0 && _darkCells.Count == 0)
-        {
-            CollectCells();
-        }
-
-        // Переводим базовый цвет в HSV, чтобы управлять яркостью
         Color.RGBToHSV(baseColor, out float h, out float s, out float v);
-
-        // Светлые клетки — сам базовый цвет
         Color lightColor = Color.HSVToRGB(h, s, v);
-
-        // Тёмные — тот же тон/насыщенность, но ниже яркость
         float darkV = Mathf.Clamp01(v * darkBrightnessMultiplier);
         Color darkColor = Color.HSVToRGB(h, s, darkV);
 
-        // Применяем цвет к светлым и тёмным ячейкам
+        if (useMergedMesh)
+        {
+            ApplyChessColorMerged(lightColor, darkColor);
+            return;
+        }
+
+        if (_lightCells.Count == 0 && _darkCells.Count == 0)
+            CollectCells();
+
         ApplyColorToRenderers(_lightCells, lightColor);
         ApplyColorToRenderers(_darkCells, darkColor);
+    }
+
+    /// <summary>
+    /// Для объединённого меша: подменяет материал на шейдер Ground/ChessGround при необходимости
+    /// и выставляет _ChessColorLight, _ChessColorDark, _ChessCellSize.
+    /// </summary>
+    private void ApplyChessColorMerged(Color lightColor, Color darkColor)
+    {
+        if (_chessGroundShader == null)
+            _chessGroundShader = Shader.Find("Ground/ChessGround");
+        if (_chessGroundShader == null)
+            return;
+
+        var renderers = GetComponentsInChildren<Renderer>(true);
+        foreach (var r in renderers)
+        {
+            if (r == null)
+                continue;
+
+            Material[] mats = r.materials;
+            for (int i = 0; i < mats.Length; i++)
+            {
+                if (mats[i] == null)
+                    continue;
+                if (!mats[i].HasProperty(ChessColorLightId))
+                    mats[i] = new Material(_chessGroundShader);
+
+                mats[i].SetColor(ChessColorLightId, lightColor);
+                mats[i].SetColor(ChessColorDarkId, darkColor);
+                mats[i].SetFloat(ChessCellSizeId, mergedCellSize);
+            }
+            r.materials = mats;
+        }
     }
 
     private void ApplyColorToRenderers(List<Renderer> renderers, Color color)

@@ -1,0 +1,80 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!28 &-793526337335872657
+Texture2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: _Gradient_gradienttexture Texture{"mode":0,"colorKeys":[{"color":{"r":0.6349969506263733,"g":0.23137253522872926,"b":1.0,"a":1.0},"time":0.0},{"color":{"r":1.0,"g":0.2539510130882263,"b":0.23113209009170533,"a":1.0},"time":0.20000000298023225},{"color":{"r":1.0,"g":0.9816866517066956,"b":0.23137253522872926,"a":1.0},"time":0.4000000059604645},{"color":{"r":0.5253831148147583,"g":1.0,"b":0.23137253522872926,"a":1.0},"time":0.6000000238418579},{"color":{"r":0.23137253522872926,"g":1.0,"b":0.9112221002578735,"a":1.0},"time":0.800000011920929},{"color":{"r":0.23137253522872926,"g":0.27549850940704348,"b":1.0,"a":1.0},"time":1.0}],"alphaKeys":[{"alpha":1.0,"time":0.0},{"alpha":1.0,"time":1.0}]}
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_IsAlphaChannelOptional: 0
+  serializedVersion: 3
+  m_Width: 256
+  m_Height: 1
+  m_CompleteImageSize: 1024
+  m_MipsStripped: 0
+  m_TextureFormat: 5
+  m_MipCount: 1
+  m_IsReadable: 1
+  m_IsPreProcessed: 0
+  m_IgnoreMipmapLimit: 1
+  m_MipmapLimitGroupName: 
+  m_StreamingMipmaps: 0
+  m_StreamingMipmapsPriority: 0
+  m_VTOnly: 0
+  m_AlphaIsTransparency: 0
+  m_ImageCount: 1
+  m_TextureDimension: 2
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 1
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 1
+    m_WrapV: 1
+    m_WrapW: 1
+  m_LightmapFormat: 0
+  m_ColorSpace: 1
+  m_PlatformBlob: 
+  image data: 1024
+  _typelessdata: ffa23bffffa43bfbffa63bf7ffa73bf3ffa93bf0ffab3cecffad3ce8ffaf3ce4ffb13ce0ffb23cdcffb43cd9ffb63cd5ffb83cd1ffba3ccdffbb3dc9ffbd3dc5ffbf3dc1ffc13dbeffc33dbaffc53db6ffc63db2ffc83daeffca3daaffcc3ea7ffce3ea3ffd03e9fffd13e9bffd33e97ffd53e93ffd73e90ffd93e8cffda3e88ffdc3f84ffde3f80ffe03f7cffe23f78ffe43f75ffe53f71ffe73f6dffe93f69ffeb4065ffed4061ffef405efff0405afff24056fff44052fff6404efff8404afffa4046fffb4143fffd413fffff413bffff443bffff483bffff4c3bffff4f3bffff533bffff573bffff5a3bffff5e3bffff623bffff653bffff693bffff6c3bffff703bffff743bffff773bffff7b3bffff7f3bffff823bffff863bffff8a3bffff8d3bffff913bffff943bffff983bffff9c3bffff9f3bffffa33bffffa73bffffaa3bffffae3bffffb23bffffb53bffffb93bffffbc3bffffc03bffffc43bffffc73bffffcb3bffffcf3bffffd23bffffd63bffffda3bffffdd3bffffe13bffffe43bffffe83bffffec3bffffef3bfffff33bfffff73bfffffa3bfffdfa3bfffafb3bfff8fb3bfff6fb3bfff3fb3bfff1fb3bffeefb3bffecfb3bffeafb3bffe7fb3bffe5fb3bffe3fb3bffe0fc3bffdefc3bffdbfc3bffd9fc3bffd7fc3bffd4fc3bffd2fc3bffd0fc3bffcdfc3bffcbfc3bffc8fc3bffc6fd3bffc4fd3bffc1fd3bffbffd3bffbdfd3bffbafd3bffb8fd3bffb5fd3bffb3fd3bffb1fd3bffaefd3bffacfe3bffaafe3bffa7fe3bffa5fe3bffa2fe3bffa0fe3bff9efe3bff9bfe3bff99fe3bff97fe3bff94fe3bff92ff3bff8fff3bff8dff3bff8bff3bff88ff3bff86ff3bff85ff3eff83ff42ff82ff45ff80ff49ff7fff4cff7dff4fff7cff53ff7aff56ff79ff5aff77ff5dff76ff60ff74ff64ff73ff67ff71ff6bff70ff6eff6eff71ff6dff75ff6cff78ff6aff7cff69ff7fff67ff82ff66ff86ff64ff89ff63ff8dff61ff90ff60ff93ff5eff97ff5dff9aff5bff9eff5affa1ff58ffa4ff57ffa8ff55ffabff54ffafff53ffb2ff51ffb5ff50ffb9ff4effbcff4dffc0ff4bffc3ff4affc6ff48ffcaff47ffcdff45ffd1ff44ffd4ff42ffd7ff41ffdbff3fffdeff3effe2ff3cffe5ff3bffe8ff3bfbe9ff3bf8e9ff3bf4eaff3bf1eaff3bedebff3be9ebff3be6ebff3be2ecff3bdeecff3bdbedff3bd7edff3bd4eeff3bd0eeff3bccefff3bc9efff3bc5efff3bc1f0ff3bbef0ff3bbaf1ff3bb7f1ff3bb3f2ff3baff2ff3bacf3ff3ba8f3ff3ba4f3ff3ba1f4ff3b9df4ff3b9af5ff3b96f5ff3b92f6ff3b8ff6ff3b8bf7ff3b87f7ff3b84f7ff3b80f8ff3b7df8ff3b79f9ff3b75f9ff3b72faff3b6efaff3b6afbff3b67fbff3b63fbff3b60fcff3b5cfcff3b58fdff3b55fdff3b51feff3b4dfeff3b4affff3b46ff
+  m_StreamData:
+    serializedVersion: 2
+    offset: 0
+    size: 0
+    path: 
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Sample
+  m_Shader: {fileID: 4800000, guid: 1a101e726529dff4f9a81fd29c2be2a1, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _Gradient_gradienttexture:
+        m_Texture: {fileID: -793526337335872657}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats: []
+    m_Colors: []
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

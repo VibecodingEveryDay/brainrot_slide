@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: bf409ee77b4a72f498922a61a96f649c
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 258497
+  packageName: Gradient Property for Shader
+  packageVersion: 3.0.0
+  assetPath: Assets/Gradient Property for Shader/Demo/Amplify Sample.shader
+  uploadId: 856378

@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// Платформа скольжения. Вешается на родителя с дочерними мешами (как GroundChessColor).
-/// Коллайдера на родителе не требуется: добавь на дочерний объект с коллайдером компонент SlideGroundTrigger.
+/// Коллайдера на родителе не требуется: на объект с MeshCollider (isTrigger) добавь SlideTriggerZone.
 /// </summary>
 public class SlideGround : MonoBehaviour
 {
@@ -18,9 +18,9 @@ public class SlideGround : MonoBehaviour
         if (other == null || !other.CompareTag("Player")) return;
         var controller = other.GetComponent<ThirdPersonController>();
         if (controller != null)
-            controller.EnterSlide(this);
+            controller.EnterSlide();
         if (SlideManager.Instance != null)
-            SlideManager.Instance.EnterSlide(this);
+            SlideManager.Instance.EnterSlide(transform, tiltAngleX);
     }
     
     /// <summary>
@@ -45,9 +45,9 @@ public class SlideGround : MonoBehaviour
         if (player == null) return;
         var controller = player.GetComponent<ThirdPersonController>();
         if (controller != null)
-            controller.EnterSlide(this);
+            controller.EnterSlide();
         if (SlideManager.Instance != null)
-            SlideManager.Instance.EnterSlide(this);
+            SlideManager.Instance.EnterSlide(transform, tiltAngleX);
     }
     
     /// <summary>

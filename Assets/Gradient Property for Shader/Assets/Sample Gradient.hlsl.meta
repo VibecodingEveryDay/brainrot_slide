@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 955de0c8b61f3b8409996b78d196f40c
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 258497
+  packageName: Gradient Property for Shader
+  packageVersion: 3.0.0
+  assetPath: Assets/Gradient Property for Shader/Assets/Sample Gradient.hlsl
+  uploadId: 856378

@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using System.Reflection;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -109,9 +110,9 @@ public class ThirdPersonController : MonoBehaviour
     private Ladder currentLadder = null;
     private float ladderAnimatorSpeed = 1f; // Для остановки анимации лестницы
     
-    // Скольжение (SlideGround)
+    // Скольжение (параметры из SlideManager)
     private bool isSliding = false;
-    private SlideGround currentSlideGround = null;
+    private float currentSlideModelTurnY = 0f; // текущий поворот модели влево/вправо при A/D (плавный)
     
     // Параметры аниматора
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
@@ -121,6 +122,10 @@ public class ThirdPersonController : MonoBehaviour
     private static readonly int IsUpperCutJabHash = Animator.StringToHash("IsUpperCutJab");
     private static readonly int IsStrongBeat1Hash = Animator.StringToHash("IsStrongBeat1");
     private static readonly int IsLadderHash = Animator.StringToHash("IsLadder");
+    
+    private int wallBallLayer = -1; // кэш LayerMask.NameToLayer("WallBall")
+    private int groundCheckLayerMask = ~0;
+    private readonly Vector3[] groundCheckOrigins = new Vector3[5]; // без аллокации в HandleGroundCheck
     
     private void Awake()
     {
@@ -161,6 +166,8 @@ public class ThirdPersonController : MonoBehaviour
         {
             moveSpeed = baseMoveSpeed;
         }
+        wallBallLayer = LayerMask.NameToLayer("WallBall");
+        groundCheckLayerMask = wallBallLayer >= 0 ? (~0) & ~(1 << wallBallLayer) : ~0;
     }
     
     private void Start()
@@ -220,20 +227,23 @@ public class ThirdPersonController : MonoBehaviour
 #endif
     }
     
+#if EnvirData_yg
+    private static FieldInfo cachedGameReadyDoneField; // кэш рефлексии, один раз на тип
+#endif
+    private static FieldInfo cachedHousePosField; // кэш для IsPlayerInHouseArea
+    
     /// <summary>
     /// Проверяет, готов ли GameReady (используя рефлексию для доступа к приватному полю)
     /// </summary>
     private void CheckGameReady()
     {
 #if EnvirData_yg
-        // Используем рефлексию для проверки gameReadyDone
-        var gameReadyType = typeof(YG2);
-        var gameReadyDoneField = gameReadyType.GetField("gameReadyDone", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        if (cachedGameReadyDoneField == null)
+            cachedGameReadyDoneField = typeof(YG2).GetField("gameReadyDone", BindingFlags.NonPublic | BindingFlags.Static);
         
-        if (gameReadyDoneField != null)
+        if (cachedGameReadyDoneField != null)
         {
-            bool gameReadyDone = (bool)gameReadyDoneField.GetValue(null);
+            bool gameReadyDone = (bool)cachedGameReadyDoneField.GetValue(null);
             if (gameReadyDone && !isGameReady)
             {
                 isGameReady = true;
@@ -241,19 +251,16 @@ public class ThirdPersonController : MonoBehaviour
             }
             else if (!gameReadyDone && !gameReadyTimeoutStarted)
             {
-                // Запускаем таймаут, если SDK ещё не успел выставить флаг
                 StartCoroutine(CheckGameReadyDelayed());
                 gameReadyTimeoutStarted = true;
             }
         }
         else if (!gameReadyTimeoutStarted)
         {
-            // Если рефлексия не работает, проверяем через задержку (fallback)
             StartCoroutine(CheckGameReadyDelayed());
             gameReadyTimeoutStarted = true;
         }
 #else
-        // Если YG2 не используется, сразу разблокируем управление
         isGameReady = true;
 #endif
     }
@@ -321,10 +328,6 @@ public class ThirdPersonController : MonoBehaviour
     {
         Vector3 bottom = transform.position + characterController.center + Vector3.down * (characterController.height * 0.5f);
         float len = groundCheckLength;
-        int layerMask = ~0;
-        int wallBallLayer = LayerMask.NameToLayer("WallBall");
-        if (wallBallLayer >= 0)
-            layerMask &= ~(1 << wallBallLayer);
         var query = QueryTriggerInteraction.Ignore;
         
         bool contact = false;
@@ -332,7 +335,7 @@ public class ThirdPersonController : MonoBehaviour
         if (characterController.isGrounded && velocity.y <= 2f)
             contact = true;
         
-        if (!contact && groundCheckRadius > 0.001f && Physics.SphereCast(bottom, groundCheckRadius, Vector3.down, out RaycastHit sh, len, layerMask, query))
+        if (!contact && groundCheckRadius > 0.001f && Physics.SphereCast(bottom, groundCheckRadius, Vector3.down, out RaycastHit sh, len, groundCheckLayerMask, query))
         {
             if (sh.collider != null && sh.collider.gameObject != gameObject && !sh.collider.isTrigger && sh.normal.y >= minGroundNormalY)
                 contact = true;
@@ -342,10 +345,14 @@ public class ThirdPersonController : MonoBehaviour
         {
             Vector3 fwd = transform.forward; fwd.y = 0f; if (fwd.sqrMagnitude < 0.01f) fwd = Vector3.forward; fwd.Normalize();
             Vector3 rgt = transform.right;   rgt.y = 0f; if (rgt.sqrMagnitude < 0.01f) rgt = Vector3.right;   rgt.Normalize();
-            Vector3[] origins = { bottom, bottom + fwd * groundCheckRadius, bottom - fwd * groundCheckRadius, bottom + rgt * groundCheckRadius, bottom - rgt * groundCheckRadius };
-            for (int i = 0; i < origins.Length; i++)
+            groundCheckOrigins[0] = bottom;
+            groundCheckOrigins[1] = bottom + fwd * groundCheckRadius;
+            groundCheckOrigins[2] = bottom - fwd * groundCheckRadius;
+            groundCheckOrigins[3] = bottom + rgt * groundCheckRadius;
+            groundCheckOrigins[4] = bottom - rgt * groundCheckRadius;
+            for (int i = 0; i < groundCheckOrigins.Length; i++)
             {
-                if (Physics.Raycast(origins[i], Vector3.down, out RaycastHit hit, len, layerMask, query))
+                if (Physics.Raycast(groundCheckOrigins[i], Vector3.down, out RaycastHit hit, len, groundCheckLayerMask, query))
                 {
                     if (hit.collider != null && hit.collider.gameObject != gameObject && !hit.collider.isTrigger && hit.normal.y >= minGroundNormalY)
                     {
@@ -430,7 +437,7 @@ public class ThirdPersonController : MonoBehaviour
         }
         
         // Если в режиме скольжения — используем HandleSlideMovement
-        if (isSliding && currentSlideGround != null)
+        if (isSliding)
         {
             HandleSlideMovement();
             return;
@@ -812,13 +819,11 @@ public class ThirdPersonController : MonoBehaviour
     }
     
     /// <summary>
-    /// Вызывается при входе на SlideGround (триггер).
+    /// Вызывается при входе в SlideTriggerZone (триггер). Параметры slide берутся из SlideManager.
     /// </summary>
-    public void EnterSlide(SlideGround slideGround)
+    public void EnterSlide()
     {
-        if (slideGround == null) return;
         isSliding = true;
-        currentSlideGround = slideGround;
         velocity.y = 0f;
         isJumping = false;
         jumpRequested = false;
@@ -830,16 +835,16 @@ public class ThirdPersonController : MonoBehaviour
             transform.position += Vector3.up * offsetY;
             characterController.enabled = true;
         }
+        currentSlideModelTurnY = 0f;
         Debug.Log("[ThirdPersonController] Режим скольжения включён");
     }
     
     /// <summary>
-    /// Вызывается при выходе из зоны SlideGround или при нажатии кнопки остановки.
+    /// Вызывается при выходе из зоны или при нажатии кнопки остановки.
     /// </summary>
     public void ExitSlide()
     {
         isSliding = false;
-        currentSlideGround = null;
         if (modelTransform != null)
             modelTransform.localRotation = Quaternion.identity;
         Debug.Log("[ThirdPersonController] Режим скольжения выключен");
@@ -858,14 +863,15 @@ public class ThirdPersonController : MonoBehaviour
     /// </summary>
     private void HandleSlideMovement()
     {
-        if (currentSlideGround == null) return;
+        SlideManager sm = SlideManager.Instance;
+        if (sm == null) return;
         
-        // Гравитация отключена в ApplyGravity при isSliding; обнуляем velocity.y каждый кадр, чтобы не проваливаться при отключённых коллайдерах склона
+        // Гравитация отключена в ApplyGravity при isSliding; обнуляем velocity.y каждый кадр
         velocity.y = 0f;
         
-        Vector3 forward = currentSlideGround.GetSlideDirection();
-        Vector3 right = currentSlideGround.GetSlideRight();
-        float speed = (SlideManager.Instance != null) ? SlideManager.Instance.GetSlideSpeed() : 10f;
+        Vector3 forward = sm.GetSlideDirection();
+        Vector3 right = sm.GetSlideRight();
+        float speed = sm.GetSlideSpeed();
         
         float horizontal = 0f;
         if (joystickInput.magnitude > 0.1f)
@@ -887,6 +893,18 @@ public class ThirdPersonController : MonoBehaviour
         if (characterController != null && characterController.enabled)
             characterController.Move(move * Time.deltaTime);
         
+        // Ограничение X во время slide: от -170.8 до 106
+        const float slideXMin = -170.8f;
+        const float slideXMax = 106f;
+        Vector3 pos = transform.position;
+        if (pos.x < slideXMin || pos.x > slideXMax)
+        {
+            pos.x = Mathf.Clamp(pos.x, slideXMin, slideXMax);
+            characterController.enabled = false;
+            transform.position = pos;
+            characterController.enabled = true;
+        }
+        
         Vector3 lookDir = forward;
         lookDir.y = 0f;
         if (lookDir.sqrMagnitude > 0.001f)
@@ -894,8 +912,14 @@ public class ThirdPersonController : MonoBehaviour
         
         if (modelTransform != null)
         {
-            float tiltX = currentSlideGround.GetTiltAngleX();
-            modelTransform.localRotation = Quaternion.Euler(tiltX, 0f, 0f);
+            float tiltX = sm.GetSlideTiltAngleX();
+            // A: макс rotation -16°, D: макс rotation 35°
+            const float slideModelTurnMaxLeft = 16f;
+            const float slideModelTurnMaxRight = 35f;
+            float targetTurnY = horizontal < 0f ? horizontal * slideModelTurnMaxLeft : horizontal * slideModelTurnMaxRight;
+            float rotSpeed = sm != null ? sm.GetPlayerRotationSpeed() : 120f;
+            currentSlideModelTurnY = Mathf.MoveTowards(currentSlideModelTurnY, targetTurnY, rotSpeed * Time.deltaTime);
+            modelTransform.localRotation = Quaternion.Euler(tiltX, currentSlideModelTurnY, 0f);
         }
         
         currentSpeed = move.magnitude;
@@ -1117,23 +1141,14 @@ public class ThirdPersonController : MonoBehaviour
     /// </summary>
     private bool IsPlayerInHouseArea()
     {
-        // Получаем TeleportManager для доступа к housePos
         TeleportManager teleportManager = TeleportManager.Instance;
-        if (teleportManager == null)
-        {
-            return false;
-        }
+        if (teleportManager == null) return false;
         
-        // Получаем housePos через рефлексию (так как поле приватное)
-        System.Reflection.FieldInfo housePosField = typeof(TeleportManager).GetField("housePos", 
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        if (cachedHousePosField == null)
+            cachedHousePosField = typeof(TeleportManager).GetField("housePos", BindingFlags.NonPublic | BindingFlags.Instance);
+        if (cachedHousePosField == null) return false;
         
-        if (housePosField == null)
-        {
-            return false;
-        }
-        
-        Transform housePos = housePosField.GetValue(teleportManager) as Transform;
+        Transform housePos = cachedHousePosField.GetValue(teleportManager) as Transform;
         if (housePos == null)
         {
             return false;

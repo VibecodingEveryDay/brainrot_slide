@@ -1,0 +1,9 @@
+fileFormatVersion: 2
+guid: 5c5ed66209f355540ac5dc5ade5cff2e
+AssetOrigin:
+  serializedVersion: 1
+  productId: 258497
+  packageName: Gradient Property for Shader
+  packageVersion: 3.0.0
+  assetPath: Assets/Gradient Property for Shader/Source/Editor/GradientGUIDrawer.cs
+  uploadId: 856378
