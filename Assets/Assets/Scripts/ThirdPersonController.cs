@@ -126,6 +126,9 @@ public class ThirdPersonController : MonoBehaviour
     private int wallBallLayer = -1; // кэш LayerMask.NameToLayer("WallBall")
     private int groundCheckLayerMask = ~0;
     private readonly Vector3[] groundCheckOrigins = new Vector3[5]; // без аллокации в HandleGroundCheck
+
+    // Блокировка движения назад (S), например, при контакте с BackBlocker пока он не осязаемый.
+    private bool blockBackwardMovement;
     
     private void Awake()
     {
@@ -475,6 +478,12 @@ public class ThirdPersonController : MonoBehaviour
             vertical = Input.GetAxisRaw("Vertical");
 #endif
         }
+
+        // При необходимости блокируем движение назад (отрицательный ввод по вертикали).
+        if (blockBackwardMovement && vertical < 0f)
+        {
+            vertical = 0f;
+        }
         
         // Вычисляем направление движения относительно камеры
         Vector3 moveDirection = Vector3.zero;
@@ -632,22 +641,24 @@ public class ThirdPersonController : MonoBehaviour
     
     private void ApplyGravity()
     {
-        // На лестнице или при скольжении не применяем гравитацию
-        if (isOnLadder || isSliding) return;
-        
         // Проверяем, что CharacterController активен и не null
         if (characterController == null || !characterController.enabled || !gameObject.activeInHierarchy)
         {
             return;
         }
-        
-        // Применяем гравитацию
-        velocity.y += gravity * Time.deltaTime;
-        
-        // Применяем вертикальное движение
-        characterController.Move(velocity * Time.deltaTime);
-        
-        // Применяем отталкивание (мяч) и затухание
+
+        // На лестнице или при скольжении ГРАВИТАЦИЮ не применяем,
+        // но отталкивание (knockback) должно работать всегда.
+        if (!isOnLadder && !isSliding)
+        {
+            // Применяем гравитацию
+            velocity.y += gravity * Time.deltaTime;
+
+            // Применяем вертикальное движение
+            characterController.Move(velocity * Time.deltaTime);
+        }
+
+        // Применяем отталкивание (мяч/удар охранника) и затухание
         if (knockbackVelocity.sqrMagnitude > 0.01f)
         {
             characterController.Move(knockbackVelocity * Time.deltaTime);
@@ -823,18 +834,28 @@ public class ThirdPersonController : MonoBehaviour
     /// </summary>
     public void EnterSlide()
     {
+        // Если игрок входит в slide с брейнротом в руках — сразу выбрасываем его.
+        PlayerCarryController carry = GetComponent<PlayerCarryController>();
+        if (carry != null)
+        {
+            BrainrotObject carried = carry.GetCurrentCarriedObject();
+            if (carried != null)
+            {
+                carry.DropObject();
+            }
+        }
+
+        // Если идёт телепортация из-за поражения (в т.ч. после удара охранника),
+        // не позволяем включать режим скольжения.
+        TeleportManager tp = TeleportManager.Instance;
+        if (tp != null && tp.IsTeleportingDueToLose())
+            return;
+
         isSliding = true;
         velocity.y = 0f;
         isJumping = false;
         jumpRequested = false;
         jumpRequestTime = -1f;
-        float offsetY = (SlideManager.Instance != null) ? SlideManager.Instance.GetPlayerSlideOffsetY() : 0f;
-        if (offsetY != 0f && characterController != null)
-        {
-            characterController.enabled = false;
-            transform.position += Vector3.up * offsetY;
-            characterController.enabled = true;
-        }
         currentSlideModelTurnY = 0f;
         Debug.Log("[ThirdPersonController] Режим скольжения включён");
     }
@@ -903,6 +924,27 @@ public class ThirdPersonController : MonoBehaviour
             characterController.enabled = false;
             transform.position = pos;
             characterController.enabled = true;
+        }
+        
+        // Плавно подгоняем Y игрока к траектории slide (нижней грани триггера) с учётом playerSlideOffsetY.
+        if (characterController != null)
+        {
+            float yLerpTime = sm.GetSlideYOffsetLerpTime();
+            if (yLerpTime > 0f && sm.TryProjectPointOnSlidePlane(transform.position, out Vector3 projected))
+            {
+                float targetY = projected.y + sm.GetPlayerSlideOffsetY();
+                Vector3 curPos = transform.position;
+                float dy = targetY - curPos.y;
+                if (Mathf.Abs(dy) > 0.0001f)
+                {
+                    float maxDelta = Mathf.Abs(dy) * (Time.deltaTime / yLerpTime);
+                    float newY = Mathf.MoveTowards(curPos.y, targetY, maxDelta);
+                    characterController.enabled = false;
+                    curPos.y = newY;
+                    transform.position = curPos;
+                    characterController.enabled = true;
+                }
+            }
         }
         
         Vector3 lookDir = forward;
@@ -1110,6 +1152,14 @@ public class ThirdPersonController : MonoBehaviour
     public void RefreshSpeedFromLevel()
     {
         UpdateSpeedFromLevel();
+    }
+
+    /// <summary>
+    /// Заблокировать или разрешить движение назад (по оси S / отрицательный вертикальный ввод).
+    /// </summary>
+    public void SetBackwardMovementBlocked(bool blocked)
+    {
+        blockBackwardMovement = blocked;
     }
     
     /// <summary>

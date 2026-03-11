@@ -1,94 +1,150 @@
 {
-    "balanceCount": 1807335470,
+    "balanceCount": 195162989,
     "balanceScaler": "",
     "Brainrots": [],
-    "PlayerSpeedLevel": 38,
+    "PlayerSpeedLevel": 37,
     "OpeningLevel": 0,
     "PlacedBrainrots": [
         {
-            "placementID": 1,
-            "brainrotName": "KetupatKepat",
+            "placementID": 0,
+            "brainrotName": "BisonteGiuppitere",
             "level": 0,
             "rarity": "Rare",
-            "baseIncome": 998
+            "baseIncome": 57
         },
         {
             "placementID": 2,
-            "brainrotName": "TralaleroTralala",
-            "level": 20,
+            "brainrotName": "AdminLuckyBlock",
+            "level": 8,
             "rarity": "Exclusive",
-            "baseIncome": 903
+            "baseIncome": 89
+        },
+        {
+            "placementID": 3,
+            "brainrotName": "67",
+            "level": 0,
+            "rarity": "Rare",
+            "baseIncome": 59
+        },
+        {
+            "placementID": 4,
+            "brainrotName": "BisonteGiuppitere",
+            "level": 0,
+            "rarity": "Exclusive",
+            "baseIncome": 88
+        },
+        {
+            "placementID": 5,
+            "brainrotName": "ChimpanziniBananini",
+            "level": 2,
+            "rarity": "Epic",
+            "baseIncome": 85
+        },
+        {
+            "placementID": 6,
+            "brainrotName": "BlackholeGoat",
+            "level": 3,
+            "rarity": "Epic",
+            "baseIncome": 82
+        },
+        {
+            "placementID": 11,
+            "brainrotName": "TungTungTungSahur",
+            "level": 0,
+            "rarity": "Exclusive",
+            "baseIncome": 56
+        },
+        {
+            "placementID": 7,
+            "brainrotName": "BallerinaCappuccina",
+            "level": 0,
+            "rarity": "Exclusive",
+            "baseIncome": 80
+        },
+        {
+            "placementID": 1,
+            "brainrotName": "KetupatKepat",
+            "level": 6,
+            "rarity": "Mythic",
+            "baseIncome": 51
+        },
+        {
+            "placementID": 15,
+            "brainrotName": "ChimpanziniBananini",
+            "level": 0,
+            "rarity": "Epic",
+            "baseIncome": 126
+        },
+        {
+            "placementID": 14,
+            "brainrotName": "TralaleroTralala",
+            "level": 0,
+            "rarity": "Epic",
+            "baseIncome": 89
+        },
+        {
+            "placementID": 13,
+            "brainrotName": "KarkerkarKurkur",
+            "level": 0,
+            "rarity": "Exclusive",
+            "baseIncome": 85
         }
     ],
     "EarnPanelBalances": [
         {
-            "panelID": 4,
-            "accumulatedBalance": 0.0
-        },
-        {
-            "panelID": 3,
-            "accumulatedBalance": 0.0
-        },
-        {
-            "panelID": 2,
-            "accumulatedBalance": 19152630.0
-        },
-        {
-            "panelID": 5,
-            "accumulatedBalance": 0.0
+            "panelID": 0,
+            "accumulatedBalance": 23655.0
         },
         {
             "panelID": 1,
-            "accumulatedBalance": 503990.0
+            "accumulatedBalance": 1499400.0
         },
         {
-            "panelID": 0,
-            "accumulatedBalance": 0.0
+            "panelID": 2,
+            "accumulatedBalance": 176220.0
+        },
+        {
+            "panelID": 3,
+            "accumulatedBalance": 6490.0
+        },
+        {
+            "panelID": 4,
+            "accumulatedBalance": 7040.0
+        },
+        {
+            "panelID": 5,
+            "accumulatedBalance": 242250.0
         },
         {
             "panelID": 6,
-            "accumulatedBalance": 0.0
+            "accumulatedBalance": 328000.0
         },
         {
             "panelID": 7,
-            "accumulatedBalance": 0.0
+            "accumulatedBalance": 16000.0
         },
         {
             "panelID": 11,
-            "accumulatedBalance": 0.0
+            "accumulatedBalance": 48720.0
         },
         {
             "panelID": 15,
-            "accumulatedBalance": 0.0
-        },
-        {
-            "panelID": 12,
-            "accumulatedBalance": 0.0
+            "accumulatedBalance": 554400.0
         },
         {
             "panelID": 14,
-            "accumulatedBalance": 0.0
+            "accumulatedBalance": 391600.0
         },
         {
             "panelID": 13,
-            "accumulatedBalance": 0.0
-        },
-        {
-            "panelID": 10,
-            "accumulatedBalance": 0.0
+            "accumulatedBalance": 74800.0
         }
     ],
     "AttackPowerLevel": 0,
     "CurrentUltimate": "IsStrongBeat1",
     "UnlockedLadders": [],
-    "HiddenWalls": [
-        1,
-        2
-    ],
-    "RemovedNpcGuyIds": [
-        "NpcGuy_1_Npc1",
-        "NpcGuy_2_Npc2"
-    ],
+    "HiddenWalls": [],
+    "RemovedNpcGuyIds": [],
     "intExample": 5,
     "strExample": "Hello!",
     "boolExample": [
@@ -97,5 +153,5 @@
         false,
         false
     ],
-    "idSave": 40220
+    "idSave": 49030
 }

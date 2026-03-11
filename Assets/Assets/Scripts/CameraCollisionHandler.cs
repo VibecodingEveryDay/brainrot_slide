@@ -53,7 +53,7 @@ public class CameraCollisionHandler : MonoBehaviour
     private const string WallBallTag = "WallBall";
     private const string StartFinishTag = "StartFinish";
     private const string PlayerTag = "Player";
-    
+
     // Текущее расстояние камеры (изменяется при столкновениях)
     private float currentDistance;
     
@@ -145,8 +145,9 @@ public class CameraCollisionHandler : MonoBehaviour
             // Автоматически синхронизируем дистанцию с ThirdPersonCamera
             defaultDistance = thirdPersonCamera.GetDistance();
         }
+
     }
-    
+
     private void LateUpdate()
     {
         if (!enableCollisionHandling) return;
@@ -214,11 +215,19 @@ public class CameraCollisionHandler : MonoBehaviour
         
         currentDistance = Mathf.SmoothDamp(currentDistance, desiredDistance, ref distanceVelocity, smoothTime);
         currentDistance = Mathf.Clamp(currentDistance, minDistance, effectiveMaxDistance);
-        
+
         // Вычисляем новую позицию камеры, сохраняя направление обзора
-        // Используем lastValidDirection для сохранения угла обзора
         Vector3 newPosition = target.position + lastValidDirection * currentDistance;
-        
+
+        // Во время slide: когда камера сзади игрока (Z камеры > Z игрока), не даём камере опуститься ниже Y игрока + offset.
+        SlideManager slideManager = SlideManager.Instance;
+        if (slideManager != null && slideManager.IsSlideActive() && newPosition.z > target.position.z)
+        {
+            float minY = target.position.y + slideManager.GetCameraMinYOffsetWhenBehindPlayer();
+            if (newPosition.y < minY)
+                newPosition.y = minY;
+        }
+
         // Дополнительная проверка: убеждаемся, что камера не под полом/потолком
         // Проверяем вертикальные препятствия сверху и снизу
         newPosition = CheckVerticalObstacles(newPosition);
@@ -249,8 +258,7 @@ public class CameraCollisionHandler : MonoBehaviour
     }
     
     /// <summary>
-    /// Дополнительная проверка тонким лучом от цели к камере — гарантирует попадание в меш ступенек
-    /// и тонкие грани, которые SphereCast может пропустить.
+    /// Дополнительная проверка тонким лучом от цели к камере — гарантирует попадание в меш ступенек и тонкие грани.
     /// </summary>
     private float GetRaycastSafeDistanceFromTarget(float maxDistance)
     {
@@ -259,16 +267,17 @@ public class CameraCollisionHandler : MonoBehaviour
         float len = dirFromTargetToCamera.magnitude;
         if (len < 0.001f) return maxDistance;
         dirFromTargetToCamera /= len;
+
+        float safe = maxDistance;
         RaycastHit hit;
         if (RaycastIgnoreWallBall(target.position, dirFromTargetToCamera, maxDistance, out hit))
         {
-            float safe = hit.distance - collisionOffset;
-            safe = Mathf.Clamp(safe, minDistance, maxDistance);
+            safe = Mathf.Min(safe, hit.distance - collisionOffset);
             if (showDebugRays)
                 Debug.DrawRay(target.position, dirFromTargetToCamera * hit.distance, Color.cyan);
-            return safe;
         }
-        return maxDistance;
+        safe = Mathf.Clamp(safe, minDistance, maxDistance);
+        return safe;
     }
     
     private static bool IsIgnoredObstacle(Collider c)
@@ -377,20 +386,19 @@ public class CameraCollisionHandler : MonoBehaviour
             // Выполняем Raycast от камеры к цели для поиска препятствий
             RaycastHit hitFromCamera;
             bool hasHitFromCamera = RaycastIgnoreWallBall(rayStart, directionToTarget, distanceToTarget, out hitFromCamera);
-            
+
             if (hasHitFromCamera)
             {
                 // Найдено препятствие между камерой и целью
-                // Вычисляем безопасное расстояние: от цели до препятствия минус радиус и зазор
                 float safeDistance = distanceToTarget - hitFromCamera.distance - collisionRadius - collisionOffset;
                 safeDistance = Mathf.Max(safeDistance, minDistance);
-                
+
                 if (showDebugRays)
                 {
                     Debug.DrawRay(rayStart, directionToTarget * hitFromCamera.distance, Color.red);
                     Debug.DrawRay(rayStart, Vector3.up * 0.5f, Color.red);
                 }
-                
+
                 return GetRaycastSafeDistanceFromTarget(safeDistance);
             }
             else

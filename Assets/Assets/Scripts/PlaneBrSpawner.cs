@@ -21,6 +21,8 @@ public class PlaneBrSpawner : MonoBehaviour
     [SerializeField] private float spawnPlaneSizeX = 10f;
     [Tooltip("Размер плоскости по локальной оси Z")]
     [SerializeField] private float spawnPlaneSizeZ = 10f;
+    [Tooltip("Смещение центра плоскости спавна в локальных координатах X/Y/Z относительно объекта спавнера.")]
+    [SerializeField] private Vector3 spawnPlaneOffset = Vector3.zero;
     [Tooltip("Смещение Y позиции спавна относительно объекта")]
     [SerializeField] private float spawnHeightOffset = 0f;
 
@@ -34,11 +36,23 @@ public class PlaneBrSpawner : MonoBehaviour
     [Tooltip("Максимум попыток найти точку с учётом minOffset для одного объекта")]
     [SerializeField] private int maxPlacementAttempts = 100;
 
+    [Header("Debug / Gizmos")]
+    [Tooltip("Показывать в сцене область спавна брейнротов (Gizmos).")]
+    [SerializeField] private bool showGizmos = true;
+
     [Header("Базовый доход (baseIncome)")]
     [Tooltip("Минимальный baseIncome заспавненного брейнрота")]
     [SerializeField] private long baseIncomeMin = 1L;
     [Tooltip("Максимальный baseIncome заспавненного брейнрота")]
     [SerializeField] private long baseIncomeMax = 100L;
+
+    [Header("Guard (опционально)")]
+    [Tooltip("Если включено — вместе с брейнротами будет заспавнен охранник.")]
+    [SerializeField] private bool spawnGuard = false;
+    [Tooltip("Префаб охранника, которого спавнит этот PlaneBrSpawner.")]
+    [SerializeField] private GameObject guardPrefab;
+    [Tooltip("Скорость ходьбы охранника на этой платформе (чем больше, тем сложнее). Если ≤ 0 — используется значение из префаба.")]
+    [SerializeField] private float guardWalkSpeed = 0f;
 
     [Header("Шансы редкостей (0 = 0%, >0 = %, <0 = вес остатка до 100%)")]
     [Tooltip("Common")]
@@ -90,6 +104,27 @@ public class PlaneBrSpawner : MonoBehaviour
             if (!TrySpawnOne(out _))
             {
                 Debug.LogWarning($"[PlaneBrSpawner] Не удалось разместить брейнрот {i + 1}/{count} после {maxPlacementAttempts} попыток (minOffset={minOffset}).", this);
+            }
+        }
+
+        // При необходимости спавним охранника на этой же плоскости.
+        if (spawnGuard && guardPrefab != null)
+        {
+            Vector3 guardPos = GetRandomPointOnPlane();
+            Quaternion guardRot = transform.rotation;
+            GameObject guardInstance = Instantiate(guardPrefab, guardPos, guardRot);
+
+            // Если у охранника есть GuardBehaviour — выдаём ему ссылку на этот PlaneBrSpawner
+            // для выбора точек патруля в пределах данной плоскости.
+            GuardBehaviour guardBehaviour = guardInstance.GetComponent<GuardBehaviour>();
+            if (guardBehaviour != null)
+            {
+                guardBehaviour.SetPatrolSpawner(this);
+                // Если задана скорость охраны для этой платформы — применяем её.
+                if (guardWalkSpeed > 0f)
+                {
+                    guardBehaviour.SetWalkSpeed(guardWalkSpeed);
+                }
             }
         }
     }
@@ -204,13 +239,13 @@ public class PlaneBrSpawner : MonoBehaviour
         return _normalizedRarities[_normalizedRarities.Count - 1];
     }
 
-    private Vector3 GetRandomPointOnPlane()
+    public Vector3 GetRandomPointOnPlane()
     {
         float x = Random.Range(-spawnPlaneSizeX * 0.5f, spawnPlaneSizeX * 0.5f);
         float z = Random.Range(-spawnPlaneSizeZ * 0.5f, spawnPlaneSizeZ * 0.5f);
-        Vector3 local = new Vector3(x, 0f, z);
+        Vector3 local = new Vector3(x, 0f, z) + spawnPlaneOffset;
         Vector3 world = transform.TransformPoint(local);
-        world.y = transform.position.y + spawnHeightOffset;
+        world.y += spawnHeightOffset;
         return world;
     }
 
@@ -286,7 +321,7 @@ public class PlaneBrSpawner : MonoBehaviour
             GameObject go = _spawnedInstances[i];
             if (go == null) continue;
             BrainrotObject br = go.GetComponent<BrainrotObject>();
-            if (br != null && br.IsCarried())
+            if (br != null && (br.IsCarried() || PlacementPanel.IsBrainrotPlacedOnPanel(br)))
                 continue;
             Destroy(go);
         }
@@ -328,16 +363,25 @@ public class PlaneBrSpawner : MonoBehaviour
     }
 
 #if UNITY_EDITOR
-    private void OnDrawGizmosSelected()
+    private void OnDrawGizmos()
     {
-        Vector3 c = transform.position;
-        Vector3 r = transform.right * (spawnPlaneSizeX * 0.5f);
-        Vector3 f = transform.forward * (spawnPlaneSizeZ * 0.5f);
-        Gizmos.color = new Color(1f, 0f, 0f, 0.5f);
-        Gizmos.DrawLine(c - r - f, c + r - f);
-        Gizmos.DrawLine(c + r - f, c + r + f);
-        Gizmos.DrawLine(c + r + f, c - r + f);
-        Gizmos.DrawLine(c - r + f, c - r - f);
+        if (!showGizmos)
+            return;
+
+        // Рисуем область спавна в локальных координатах объекта спавнера,
+        // с учётом всех родителей (матрица localToWorld).
+        Gizmos.matrix = transform.localToWorldMatrix;
+
+        Vector3 size = new Vector3(spawnPlaneSizeX, 0.01f, spawnPlaneSizeZ);
+        Vector3 center = spawnPlaneOffset + Vector3.up * spawnHeightOffset;
+
+        // Полупрозрачный заполненный прямоугольник
+        Gizmos.color = new Color(1f, 0f, 0f, 0.15f);
+        Gizmos.DrawCube(center, size);
+
+        // Яркая рамка по периметру
+        Gizmos.color = new Color(1f, 0f, 0f, 0.9f);
+        Gizmos.DrawWireCube(center, size);
     }
 #endif
 }

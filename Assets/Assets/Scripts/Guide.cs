@@ -13,15 +13,17 @@ public class Guide : MonoBehaviour
     [Tooltip("Префаб линии (TexturePanLine: Assets/YAH/TexturePanningAsset/Prefabs/TexturePanLine.prefab)")]
     [SerializeField] private GameObject linePrefab;
     
-    [Header("Цели")]
-    [Tooltip("Transform кнопки спавна брейнрота (не используется для линии: линия ведёт только к брейнротам не в placement).")]
-    [SerializeField] private Transform spawnBrainrotButtonTransform;
-    
     [Header("Guidance Dots")]
     [Tooltip("Transform родителя объектов-точек (точки могут быть прямыми детьми или вложенными). Имена: N_M (N — номер плоскости, M — 1=начало плоскости, 2=конец). Линия строится через эти чекпоинты.")]
     [SerializeField] private Transform guidanceDotsRoot;
     [Tooltip("Если |Y игрока - Y цели| меньше этого значения, игнорируем GuidanceDots и ведём напрямую (2 точки). 0 = всегда через точки.")]
     [SerializeField] private float guidanceDotsMaxYDifference = 50f;
+
+    [Header("Поведение линии")]
+    [Tooltip("Если включено — направляющая линия показывается только тогда, когда у игрока в руках есть брейнрот.")]
+    [SerializeField] private bool onlyWhenCarry = false;
+    [Tooltip("Если включено — линия всегда строится только из двух точек: игрок и цель (игнорируются GuidanceDots и ступеньки).")]
+    [SerializeField] private bool twoDotsMode = false;
     
     [Header("Оптимизация")]
     [Tooltip("Интервал обновления цели (секунды). Больше = меньше нагрузка на CPU")]
@@ -246,7 +248,15 @@ public class Guide : MonoBehaviour
             FindPlayerCarryController();
         if (playerCarryController != null)
             hasBrainrotInHands = playerCarryController.GetCurrentCarriedObject() != null;
-        
+
+        // Если включён режим OnlyWhenCarry — линия показывается только,
+        // когда игрок несёт брейнрот; иначе полностью скрывается.
+        if (onlyWhenCarry && !hasBrainrotInHands)
+        {
+            SetLineEnabled(false);
+            return;
+        }
+
         if (hasBrainrotInHands)
         {
             PlacementPanel targetPanel = FindNearestEmptyPlacement();
@@ -406,7 +416,16 @@ public class Guide : MonoBehaviour
     {
         if (lineRenderer == null)
             return;
-        
+
+        // Режим "2 dots": линия всегда строится только из двух точек — игрок и цель.
+        if (twoDotsMode)
+        {
+            lineRenderer.positionCount = 2;
+            lineRenderer.SetPosition(0, start);
+            lineRenderer.SetPosition(1, end);
+            return;
+        }
+
         float totalDist = Vector3.Distance(start, end);
         if (totalDist < 0.001f)
         {

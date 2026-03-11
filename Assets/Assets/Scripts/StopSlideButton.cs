@@ -31,32 +31,22 @@ public class StopSlideButton : MonoBehaviour
     {
         if (debug)
             Debug.Log("[StopSlideButton] Нажатие.");
-        
-        // 1) Отключаем slide в SlideManager (игрок + скрыть кнопку)
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player != null)
-        {
-            var controller = player.GetComponent<ThirdPersonController>();
-            if (controller != null)
-                controller.ExitSlide();
-        }
+
+        // Всё поведение StopSlide централизовано в SlideManager.StopSlide:
+        // - отключает slide у контроллера и скрывает кнопку
+        // - сбрасывает активную зону и таймер скорости
+        // - вызывает TeleportManager.TeleportToHouse()
         SlideManager sm = SlideManager.Instance;
         if (sm == null)
             sm = FindFirstObjectByType<SlideManager>();
+
         if (sm != null)
-            sm.ExitSlide();
-        
-        // 2) Сообщаем TeleportManager о телепортации на базу
-        TeleportManager tm = TeleportManager.Instance;
-        if (tm == null)
-            tm = FindFirstObjectByType<TeleportManager>();
-        if (tm != null)
         {
-            if (debug)
-                Debug.Log("[StopSlideButton] Вызов TeleportManager.TeleportToHouse().");
-            tm.TeleportToHouse();
+            sm.StopSlide();
         }
         else if (debug)
-            Debug.LogWarning("[StopSlideButton] TeleportManager не найден в сцене.");
+        {
+            Debug.LogWarning("[StopSlideButton] SlideManager не найден в сцене.");
+        }
     }
 }

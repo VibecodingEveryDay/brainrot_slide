@@ -650,9 +650,7 @@ GameObject:
   - component: {fileID: 4525262753770715200}
   - component: {fileID: 7506615107643957818}
   - component: {fileID: 6628331384998018371}
-  - component: {fileID: 1568296311179147514}
-  - component: {fileID: 6298377800163248020}
-  - component: {fileID: 8662123799682790517}
+  - component: {fileID: 1445254112904260047}
   m_Layer: 6
   m_Name: Bot
   m_TagString: Bot
@@ -669,7 +667,7 @@ Transform:
   m_GameObject: {fileID: 3857094294410060538}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -38.91, y: 5.8, z: 21.4}
+  m_LocalPosition: {x: -23.366816, y: 7.5, z: 111.01}
   m_LocalScale: {x: 1.2500001, y: 1.2500001, z: 1.2500001}
   m_ConstrainProportionsScale: 1
   m_Children:
@@ -724,7 +722,7 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0.62, y: -2.71, z: 0.99}
---- !u!114 &1568296311179147514
+--- !u!114 &1445254112904260047
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -733,53 +731,22 @@ MonoBehaviour:
   m_GameObject: {fileID: 3857094294410060538}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6452409199c004d4eb78237feb4cbb32, type: 3}
+  m_Script: {fileID: 11500000, guid: 94264e4f41359d24fbbd2a12a55edbe8, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BotCarryController
-  holdPointOffset: {x: 0, y: 1, z: 1.5}
-  followSpeed: 20
-  rotateWithCarrier: 1
---- !u!114 &6298377800163248020
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3857094294410060538}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 055d29a05be48de4d8fb95337c4341ef, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BotBehavior
-  moveSpeed: 25
-  gravity: -9.81
-  rotationSpeed: 10
-  stepOffsetOverride: 4.6
-  knockbackDecay: 5
-  groundCheckLength: 0.7
-  minGroundNormalY: 0.35
-  groundCheckRadius: 0.2
-  lifetimeSeconds: 60
-  takeDistanceThreshold: 1.5
-  retargetInterval: 2
+  m_EditorClassIdentifier: Assembly-CSharp::BotSlideBehavior
+  slidePlane: {fileID: 0}
   animator: {fileID: 7506615107643957818}
-  modelTransform: {fileID: 8258656905698826452}
-  modelPivotToBottomOffset: 2
---- !u!114 &8662123799682790517
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3857094294410060538}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6452409199c004d4eb78237feb4cbb32, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BotCarryController
-  holdPointOffset: {x: 0, y: 1, z: 1.5}
-  followSpeed: 10
-  rotateWithCarrier: 1
+  characterController: {fileID: 6628331384998018371}
+  modelTransform: {fileID: 4525262753770715200}
+  slideSpeed: 40
+  tiltAngleX: 20
+  playerSlideOffsetY: -15
+  slideYOffsetLerpTime: 0.5
+  lifetimeSeconds: 30
+  slideXMin: -170.8
+  slideXMax: 106
+  slideAnimatorParameter: Speed
+  slideAnimatorValue: 1
 --- !u!1 &3910056443375419809
 GameObject:
   m_ObjectHideFlags: 0

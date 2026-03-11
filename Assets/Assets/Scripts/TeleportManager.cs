@@ -17,11 +17,8 @@ public class TeleportManager : MonoBehaviour
     [SerializeField] private float fadeSpeed = 0.5f;
     
     [Header("References")]
-    [Tooltip("Позиция дома для телепортации (после поражения от огня и т.д.)")]
+    [Tooltip("Позиция дома для телепортации.")]
     [SerializeField] private Transform housePos;
-    
-    [Tooltip("Зона старта/финиша (объект с Collider Is Trigger и скриптом StartFinishZone). Игрок в зоне при 100% огня — поражение.")]
-    [SerializeField] private GameObject startFinishZone;
     
     [Header("Lose Text (100% fire + player in tower zone)")]
     [Tooltip("Текст для сообщения о поражении (красный)")]
@@ -71,14 +68,6 @@ public class TeleportManager : MonoBehaviour
     // Ссылка на игрока
     private Transform playerTransform;
     private ThirdPersonController playerController;
-    
-    // Игрок в зоне старта/финиша (триггер обновляется StartFinishZone)
-    private bool playerInStartFinishZone = false;
-    
-    // Уже обработали поражение от огня (чтобы не повторять)
-    private bool loseFromFireHandled = false;
-    
-    private DestroyFireManager destroyFireManager;
     
     private bool teleportingDueToLose = false;
     
@@ -134,93 +123,170 @@ public class TeleportManager : MonoBehaviour
             loseText.gameObject.SetActive(false);
         if (gotBrainrotText != null)
             gotBrainrotText.gameObject.SetActive(false);
-        
-        destroyFireManager = FindFirstObjectByType<DestroyFireManager>();
-        if (destroyFireManager != null)
-            destroyFireManager.OnProgressComplete += OnDestroyFireProgressComplete;
-    }
-    
-    private void OnDestroy()
-    {
-        if (destroyFireManager != null)
-            destroyFireManager.OnProgressComplete -= OnDestroyFireProgressComplete;
-    }
-    
-    private void Update()
-    {
-        if (loseFromFireHandled && destroyFireManager != null && destroyFireManager.GetProgress() < 1f)
-            loseFromFireHandled = false;
-    }
-    
-    /// <summary>
-    /// Вызывается StartFinishZone при входе игрока в зону.
-    /// </summary>
-    public void SetPlayerInStartFinishZone(bool inside)
-    {
-        playerInStartFinishZone = inside;
-    }
-    
-    /// <summary>
-    /// Вызывается StartFinishZone при выходе игрока из зоны с брейнротом в руках.
-    /// </summary>
-    public void OnPlayerExitedStartFinishWithBrainrot(string brainrotName)
-    {
-        if (string.IsNullOrEmpty(brainrotName)) return;
-        if (gotBrainrotText == null) return;
-        
-        string format = IsRussianLanguage() ? gotBrainrotFormatRu : gotBrainrotFormatEn;
-        gotBrainrotText.text = string.Format(format, brainrotName);
-        gotBrainrotText.color = new Color(0.2f, 1f, 0.2f);
-        gotBrainrotText.gameObject.SetActive(true);
-        cachedGotBrainrotTextBaseScale = gotBrainrotText.transform.localScale;
-        SetNotificationAlpha(gotBrainrotText, 1f);
-        StartNotificationPulse(gotBrainrotText.transform, cachedGotBrainrotTextBaseScale);
-        StartNotificationHideAfterDelay(gotBrainrotText, cachedGotBrainrotTextBaseScale);
-        StartBrainrotRespawnAsync();
-    }
-    
-    /// <summary>
-    /// Вызывается при столкновении игрока с мячом: UI проигрыша, удаление брейнрота из рук, удаление всех мячей, телепорт на базу.
-    /// </summary>
-    public void OnPlayerHitByBall()
-    {
-        teleportingDueToLose = true;
-        ShowLoseText();
-        RemoveCarriedBrainrot();
-        DestroyAllBalls();
-        StartBrainrotRespawnAsync();
-        TeleportToHouse();
-    }
-
-    private void OnDestroyFireProgressComplete()
-    {
-        if (loseFromFireHandled) return;
-        if (!playerInStartFinishZone) return;
-        
-        loseFromFireHandled = true;
-        teleportingDueToLose = true;
-        ShowLoseText();
-        RemoveCarriedBrainrot();
-        TeleportToHouse();
     }
 
     /// <summary>
-    /// Удаляет все мячи на сцене (объекты с компонентом Ball).
+    /// Вызывается, когда игрок в slide-настройке нажал GetIt с брейнротом в руках:
+    /// удаляет текущий экземпляр брейнрота и после телепортации создаёт в руках у игрока
+    /// новый экземпляр такого же брейнрота (по имени), с сохранением ключевых параметров.
     /// </summary>
-    public void DestroyAllBalls()
+    public void OnPlayerGotBrainrotViaSlide(BrainrotObject sourceBrainrot)
     {
-        Ball[] balls = FindObjectsByType<Ball>(FindObjectsSortMode.None);
-        for (int i = 0; i < balls.Length; i++)
+        if (sourceBrainrot == null)
+            return;
+
+        // Имя для UI и поиска префаба
+        string name = sourceBrainrot.GetObjectName();
+
+        // Показываем текст «Вы получили {имя брейнрота}»
+        if (!string.IsNullOrEmpty(name) && gotBrainrotText != null)
         {
-            if (balls[i] != null && balls[i].gameObject != null)
-                Destroy(balls[i].gameObject);
+            string format = IsRussianLanguage() ? gotBrainrotFormatRu : gotBrainrotFormatEn;
+            gotBrainrotText.text = string.Format(format, name);
+            gotBrainrotText.color = new Color(0.2f, 1f, 0.2f);
+            gotBrainrotText.gameObject.SetActive(true);
+            cachedGotBrainrotTextBaseScale = gotBrainrotText.transform.localScale;
+            SetNotificationAlpha(gotBrainrotText, 1f);
+            StartNotificationPulse(gotBrainrotText.transform, cachedGotBrainrotTextBaseScale);
+            StartNotificationHideAfterDelay(gotBrainrotText, cachedGotBrainrotTextBaseScale);
         }
+
+        // Любой «победный» телепорт тоже должен выйти из активной зоны slide.
+        var slideManager = SlideManager.Instance;
+        if (slideManager != null)
+            slideManager.SetInActiveZone(false);
+
+        // Мгновенно телепортируем игрока домой (БЕЗ fade / ожиданий).
+        if (housePos == null)
+        {
+            Debug.LogError("[TeleportManager] HousePos не назначен! Невозможно телепортировать игрока по GetIt.");
+            return;
+        }
+
+        // Убеждаемся, что есть ссылка на игрока
+        if (playerTransform == null)
+            FindPlayer();
+        if (playerTransform == null)
+        {
+            Debug.LogError("[TeleportManager] Игрок не найден при OnPlayerGotBrainrotViaSlide.");
+            return;
+        }
+
+        // Отключаем CharacterController перед перемещением
+        CharacterController characterController = playerTransform.GetComponent<CharacterController>();
+        bool wasControllerEnabled = false;
+        if (characterController != null)
+        {
+            wasControllerEnabled = characterController.enabled;
+            characterController.enabled = false;
+        }
+
+        // Мгновенный телепорт игрока в дом
+        playerTransform.position = housePos.position;
+        playerTransform.rotation = housePos.rotation;
+
+        // Включаем CharacterController обратно
+        if (characterController != null && wasControllerEnabled)
+        {
+            characterController.enabled = true;
+        }
+
+        // Сбрасываем камеру
+        ResetCameraAfterTeleport();
+
+        // Контроллер переноски — нужен до уничтожения источника, чтобы освободить руки.
+        PlayerCarryController carryController = playerTransform.GetComponent<PlayerCarryController>();
+        if (carryController == null)
+            carryController = FindFirstObjectByType<PlayerCarryController>();
+        if (carryController == null)
+        {
+            Debug.LogError("[TeleportManager] PlayerCarryController не найден при GetIt.");
+            return;
+        }
+
+        // Сохраняем параметры исходного брейнрота
+        int level = sourceBrainrot.GetLevel();
+        string rarity = sourceBrainrot.GetRarity();
+        long baseIncome = sourceBrainrot.GetBaseIncome();
+
+        // Освобождаем руки до уничтожения: иначе currentCarriedObject указывает на уничтоженный объект и CanCarry() остаётся false.
+        carryController.DropObject();
+        // Удаляем исходный экземпляр (slide-версию) из сцены
+        Destroy(sourceBrainrot.gameObject);
+
+        // Ищем префаб брейнрота по имени (те же ресурсы, что и лобби/placement)
+        GameObject prefab = FindBrainrotPrefabByName(name);
+        if (prefab == null)
+        {
+            Debug.LogError($"[TeleportManager] Не удалось найти префаб брейнрота с именем '{name}' для GetIt.");
+            return;
+        }
+
+        // Создаём новый экземпляр
+        GameObject instance = Instantiate(prefab);
+        BrainrotObject newBrainrot = instance.GetComponent<BrainrotObject>();
+        if (newBrainrot == null)
+        {
+            Debug.LogError("[TeleportManager] У префаба брейнрота нет компонента BrainrotObject.");
+            Destroy(instance);
+            return;
+        }
+
+        // Восстанавливаем параметры (уровень, редкость, базовый доход)
+        newBrainrot.SetLevel(level);
+        if (!string.IsNullOrEmpty(rarity))
+            newBrainrot.SetRarity(rarity);
+        if (baseIncome > 0)
+            newBrainrot.SetBaseIncome(baseIncome);
+
+        // Чтобы CarryObject не отклонил объект (проверка IsUnfought)
+        newBrainrot.SetUnfought(false);
+        newBrainrot.gameObject.SetActive(true);
+        foreach (Transform child in newBrainrot.transform)
+        {
+            if (child != null)
+                child.gameObject.SetActive(true);
+        }
+        Renderer[] renderers = newBrainrot.GetComponentsInChildren<Renderer>(true);
+        foreach (Renderer renderer in renderers)
+        {
+            if (renderer != null)
+            {
+                renderer.enabled = true;
+                renderer.gameObject.SetActive(true);
+            }
+        }
+
+        // Начальная позиция «в руках», чтобы не мелькал в (0,0,0) до первого LateUpdate
+        Vector3 carryOffset = new Vector3(
+            newBrainrot.GetCarryOffsetX(),
+            newBrainrot.GetCarryOffsetY(),
+            newBrainrot.GetCarryOffsetZ()
+        );
+        newBrainrot.transform.position = playerTransform.position +
+            playerTransform.forward * carryOffset.z +
+            playerTransform.right * carryOffset.x +
+            playerTransform.up * carryOffset.y;
+        // Сразу помещаем в руки через TakeBy (явно передаём carryController), чтобы объект вёл себя как «в руках» и LateUpdate тянул его за игроком
+        newBrainrot.TakeBy(carryController);
+
+        // После телепорта и взятия в руки обновляем видимость брейнротов относительно игрока,
+        // чтобы этот брейнрот гарантированно был показан.
+        BrainrotDistanceHider distanceHider = FindFirstObjectByType<BrainrotDistanceHider>();
+        if (distanceHider != null)
+        {
+            distanceHider.ForceRefresh();
+        }
+
+        // После победного телепорта по GetIt тоже респавним брейнроты в плоскостях спавна (поэтапно).
+        StartBrainrotRespawnAsync();
     }
     
     /// <summary>
-    /// Запускает поэтапный респавн всех брейнротов в сцене, чтобы не делать всю работу в один кадр.
+    /// Запускает поэтапный респавн всех брейнротов в spawn plane по одному спавнеру за кадр.
+    /// Вызывать при любой телепортации домой (поражение, победа, Stop).
     /// </summary>
-    private void StartBrainrotRespawnAsync()
+    public void StartBrainrotRespawnAsync()
     {
         if (!gameObject.activeInHierarchy)
         {
@@ -259,6 +325,42 @@ public class TeleportManager : MonoBehaviour
         Guide.InvalidateAllGuidesCache();
         
         brainrotRespawnCoroutine = null;
+    }
+
+    /// <summary>
+    /// Единая точка проигрыша от любых препятствий (RedCone, охранник и т.п.),
+    /// привязанная к синглтону TeleportManager.
+    /// Останавливает slide, помечает телепортацию как поражение, удаляет брейнрот из рук и
+    /// запускает телепорт домой с текстом «Вы проиграли» и респавном брейнротов.
+    /// </summary>
+    public void HandleLoseFromObstacle(float teleportDelaySeconds)
+    {
+        // Телепорт из-за поражения: блокируем повторный вход в slide.
+        teleportingDueToLose = true;
+
+        // Сразу выключаем режим slide у игрока (ThirdPersonController.isSliding), иначе после телепорта он продолжит скольжение.
+        if (playerTransform == null)
+            FindPlayer();
+        if (playerTransform != null)
+        {
+            ThirdPersonController controller = playerTransform.GetComponent<ThirdPersonController>();
+            if (controller != null)
+                controller.ExitSlide();
+        }
+
+        // Выход из активной зоны и остановка slide в SlideManager (кнопка, VFX, лимит времени).
+        SlideManager sm = SlideManager.Instance;
+        if (sm != null)
+        {
+            sm.SetInActiveZone(false);
+            sm.ExitSlide();
+        }
+
+        // Убираем брейнрот из рук.
+        RemoveCarriedBrainrot();
+
+        // Стартуем стандартную телепортацию домой с текстом поражения и респавном.
+        TeleportPlayerToHouseAfterDelay(Mathf.Max(0f, teleportDelaySeconds));
     }
     
     /// <summary>
@@ -375,6 +477,15 @@ public class TeleportManager : MonoBehaviour
                 Destroy(carried.gameObject);
         }
     }
+
+    /// <summary>
+    /// Идёт ли сейчас телепортация из-за поражения (мяч, огонь, удар охранника).
+    /// Можно использовать, чтобы блокировать вход в slide и другие действия.
+    /// </summary>
+    public bool IsTeleportingDueToLose()
+    {
+        return teleportingDueToLose;
+    }
     
     private static bool IsRussianLanguage()
     {
@@ -443,6 +554,49 @@ public class TeleportManager : MonoBehaviour
         // Скрываем canvas по умолчанию
         canvasObj.SetActive(false);
     }
+
+    /// <summary>
+    /// Находит префаб брейнрота по его отображаемому имени, используя ту же логику, что и PlacementPanel.
+    /// </summary>
+    private GameObject FindBrainrotPrefabByName(string brainrotName)
+    {
+        if (string.IsNullOrEmpty(brainrotName))
+            return null;
+
+#if UNITY_EDITOR
+        string folderPath = "Assets/Assets/Resources/game/Brainrots";
+        string[] guids = UnityEditor.AssetDatabase.FindAssets("t:Prefab", new[] { folderPath });
+        for (int i = 0; i < guids.Length; i++)
+        {
+            string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[i]);
+            GameObject prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (prefab == null) continue;
+
+            BrainrotObject brainrotObject = prefab.GetComponent<BrainrotObject>();
+            if (brainrotObject == null) continue;
+
+            string prefabName = brainrotObject.GetObjectName();
+            if (prefabName == brainrotName)
+                return prefab;
+        }
+        return null;
+#else
+        GameObject[] allPrefabs = Resources.LoadAll<GameObject>("game/Brainrots");
+        for (int i = 0; i < allPrefabs.Length; i++)
+        {
+            GameObject prefab = allPrefabs[i];
+            if (prefab == null) continue;
+
+            BrainrotObject brainrotObject = prefab.GetComponent<BrainrotObject>();
+            if (brainrotObject == null) continue;
+
+            string prefabName = brainrotObject.GetObjectName();
+            if (prefabName == brainrotName)
+                return prefab;
+        }
+        return null;
+#endif
+    }
     
     /// <summary>
     /// Телепортирует игрока в зону сражения (ОТКЛЮЧЕНО - BattleZone удалена)
@@ -506,6 +660,15 @@ public class TeleportManager : MonoBehaviour
     /// </summary>
     public void TeleportPlayerToHouseAfterDelay(float seconds)
     {
+        // Считаем, что с этого момента игрок уже «проиграл» и ждёт телепорта.
+        // Это нужно, чтобы, например, блокировать вход в slide сразу после удара.
+        teleportingDueToLose = true;
+
+        // Телепорт по поражению также выводит игрока из активной зоны slide.
+        var slideManager = SlideManager.Instance;
+        if (slideManager != null)
+            slideManager.SetInActiveZone(false);
+
         if (teleportToHouseAfterDelayCoroutine != null)
             StopCoroutine(teleportToHouseAfterDelayCoroutine);
         teleportToHouseAfterDelayCoroutine = StartCoroutine(TeleportToHouseAfterDelayCoroutine(seconds));
@@ -515,8 +678,14 @@ public class TeleportManager : MonoBehaviour
     {
         yield return new WaitForSeconds(seconds);
         teleportToHouseAfterDelayCoroutine = null;
+
+        // Перед самым телепортом:
+        // 1) показываем текст поражения,
+        // 2) телепортируем в дом.
+        // (брейнрот уже был удалён в момент удара охранника).
+        ShowLoseText();
         TeleportToHouse();
-        PlaneBrSpawner.RespawnAllSpawnersInScene();
+        StartBrainrotRespawnAsync();
     }
     
     /// <summary>

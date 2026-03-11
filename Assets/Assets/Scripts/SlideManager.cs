@@ -39,13 +39,40 @@ public class SlideManager : MonoBehaviour
     [Tooltip("Писать в консоль при нажатии кнопки Stop и на каждом шаге (игрок, контроллер, TeleportManager, телепорт).")]
     [SerializeField] private bool debug;
     
+    [Header("Плавная подгонка по Y")]
+    [Tooltip("Время (сек), за которое Y игрока подгоняется к траектории slide. 0 = без сглаживания (мгновенный телепорт).")]
+    [SerializeField] private float slideYOffsetLerpTime = 0.2f;
+
+    [Header("Slide Speed Decay")]
+    [Tooltip("Минимальное время (в секундах), к которому нормируется затухание скорости slide. Чем больше значение, тем дольше скорость остаётся высокой.")]
+    [SerializeField] private float minSecondsLimit = 5f;
+    [Tooltip("Сколько секунд добавлять к MinSecondsLimit за каждый уровень скорости игрока (по данным GameStorage/ShopSpeedManager). Может быть отрицательным, если с ростом уровня нужно сокращать лимит.")]
+    [SerializeField] private float addSecondsByLevel = 0f;
+
+    [Header("Camera restriction during slide")]
+    [Tooltip("Когда камера сзади игрока (Z камеры > Z игрока), камера не может опуститься по Y ниже чем Y игрока + этот offset. Чтобы камера не уходила под наклонную плоскость.")]
+    [SerializeField] private float cameraMinYOffsetWhenBehindPlayer = 0.5f;
+
     /// <summary> Плоскость скольжения (forward = направление, right = стрейф). Null = по умолчанию вперёд по миру. </summary>
     private Transform currentSlidePlane;
     private float currentSlideTiltAngleX;
+    
+    // Геометрия плоскости скольжения в мире (для проекции игрока при входе в slide).
+    private Plane slideWorldPlane;
+    private bool hasSlideWorldPlane;
     private GameObject cachedPlayer;
     private ThirdPersonController cachedPlayerController;
     private Transform runtimeVfx1;
     private Transform runtimeVfx2;
+
+    // Активная зона slide: становится true при первом входе в slide и сбрасывается при телепорте.
+    private bool isInActiveZone;
+
+    // Текущая скорость slide и время нахождения в режиме скольжения.
+    private float currentSlideSpeed;
+    private float slideElapsedTime;
+    private float effectiveMinSeconds = 1f;
+    private int lastSpeedLevel = -1;
     
     private void Awake()
     {
@@ -98,6 +125,8 @@ public class SlideManager : MonoBehaviour
     
     private void Start()
     {
+        isInActiveZone = false;
+        RecalculateEffectiveMinSeconds(true);
         if (stopSlideButton != null)
             stopSlideButton.SetActive(false);
         if (runtimeVfx1 != null)
@@ -128,6 +157,38 @@ public class SlideManager : MonoBehaviour
         }
     }
     
+    private void Update()
+    {
+        // При изменении уровня скорости игрока обновляем конечный лимит секунд,
+        // не сбрасывая накопленное время и текущую скорость.
+        var storage = GameStorage.Instance;
+        if (storage != null)
+        {
+            int level = storage.GetPlayerSpeedLevel();
+            if (level != lastSpeedLevel)
+            {
+                RecalculateEffectiveMinSeconds(false);
+            }
+        }
+
+        // Обновляем затухание скорости только пока активен slide.
+        if (currentSlidePlane != null)
+        {
+            slideElapsedTime += Time.deltaTime;
+
+            // Каждую секунду уменьшаем скорость на долю, равную 1 / effectiveMinSeconds (дискретно).
+            float factor = 1f - (Time.deltaTime / effectiveMinSeconds);
+            factor = Mathf.Clamp(factor, 0f, 1f);
+            currentSlideSpeed *= factor;
+
+            // Минимальный порог — абсолютное значение 0.1 единиц скорости.
+            // Ниже этого значения скорость не опускаем.
+            const float minSpeed = 0.1f;
+            if (currentSlideSpeed < minSpeed)
+                currentSlideSpeed = minSpeed;
+        }
+    }
+
     private void LateUpdate()
     {
         if (currentSlidePlane == null) return;
@@ -162,8 +223,41 @@ public class SlideManager : MonoBehaviour
     /// <param name="tiltAngleX">Угол наклона модели персонажа по X (градусы).</param>
     public void EnterSlide(Transform slidePlane, float tiltAngleX)
     {
+        // Если игрок уже проиграл и ждёт телепортацию (например, после удара охранника),
+        // не показываем UI и не включаем визуальные эффекты slide.
+        TeleportManager tm = TeleportManager.Instance;
+        if (tm != null && tm.IsTeleportingDueToLose())
+        {
+            if (debug)
+                Debug.Log("[SlideManager] EnterSlide: отменён, т.к. идёт телепортация из-за поражения.");
+            return;
+        }
+
+        // Первый вход в slide после телепорта или рестарта помечает игрока как находящегося в активной зоне.
+        if (!isInActiveZone)
+            isInActiveZone = true;
+
         currentSlidePlane = slidePlane;
         currentSlideTiltAngleX = tiltAngleX;
+        
+        // Строим мировую плоскость скольжения: по forward/right объекта slidePlane.
+        hasSlideWorldPlane = false;
+        if (slidePlane != null)
+        {
+            Vector3 f = slidePlane.forward;
+            Vector3 r = slidePlane.right;
+            if (f.sqrMagnitude > 0.0001f && r.sqrMagnitude > 0.0001f)
+            {
+                Vector3 n = Vector3.Cross(r, f);
+                if (n.sqrMagnitude > 0.0001f)
+                {
+                    n.Normalize();
+                    slideWorldPlane = new Plane(n, slidePlane.position);
+                    hasSlideWorldPlane = true;
+                }
+            }
+        }
+        
         if (stopSlideButton != null)
             stopSlideButton.SetActive(true);
         if (runtimeVfx1 != null)
@@ -220,7 +314,12 @@ public class SlideManager : MonoBehaviour
         if (debug)
             Debug.Log(tm != null ? "[SlideManager] TeleportManager найден, вызываю TeleportToHouse()." : "[SlideManager] TeleportManager не найден в сцене.");
         if (tm != null)
+        {
+            // StopSlide тоже считается телепортацией домой — сбрасываем активную зону и состояние затухания скорости.
+            SetInActiveZone(false);
             tm.TeleportToHouse();
+            tm.StartBrainrotRespawnAsync();
+        }
         else
             Debug.LogWarning("[SlideManager] TeleportManager не найден в сцене. Добавь объект с TeleportManager и назначь House Pos.");
     }
@@ -242,12 +341,25 @@ public class SlideManager : MonoBehaviour
             Debug.LogWarning("[SlideManager] StopSlideStatic: SlideManager не найден в сцене (Instance=null, FindFirstObjectByType тоже null).");
     }
     
+    /// <summary> Активен ли режим slide (игрок на склоне). </summary>
+    public bool IsSlideActive()
+    {
+        return currentSlidePlane != null;
+    }
+
+    /// <summary> Offset по Y: при slide, если камера сзади (Z камеры &gt; Z игрока), камера не опускается ниже Y игрока + это значение. </summary>
+    public float GetCameraMinYOffsetWhenBehindPlayer()
+    {
+        return cameraMinYOffsetWhenBehindPlayer;
+    }
+
     /// <summary>
     /// Скорость скольжения (для ThirdPersonController).
     /// </summary>
     public float GetSlideSpeed()
     {
-        return slideSpeed;
+        // Возвращаем текущую (затухающую) скорость скольжения.
+        return currentSlidePlane != null && currentSlideSpeed > 0f ? currentSlideSpeed : slideSpeed;
     }
     
     /// <summary> Направление скольжения (вперёд по склону). </summary>
@@ -278,6 +390,24 @@ public class SlideManager : MonoBehaviour
     public float GetSlideTiltAngleX()
     {
         return currentSlideTiltAngleX;
+    }
+    
+    /// <summary>
+    /// Проецирует заданную мировую точку на плоскость скольжения.
+    /// Возвращает true, если плоскость определена (есть активный slidePlane).
+    /// </summary>
+    public bool TryProjectPointOnSlidePlane(Vector3 worldPos, out Vector3 projected)
+    {
+        if (!hasSlideWorldPlane)
+        {
+            projected = worldPos;
+            return false;
+        }
+        
+        // Проекция на плоскость: смещаем точку вдоль нормали на расстояние до плоскости.
+        float distance = slideWorldPlane.GetDistanceToPoint(worldPos);
+        projected = worldPos - slideWorldPlane.normal * distance;
+        return true;
     }
     
     /// <summary>
@@ -316,5 +446,59 @@ public class SlideManager : MonoBehaviour
     public float GetPlayerRotationSpeed()
     {
         return playerRotationSpeed;
+    }
+    
+    /// <summary>
+    /// Время сглаживания позиции игрока по Y до траектории slide.
+    /// </summary>
+    public float GetSlideYOffsetLerpTime()
+    {
+        return slideYOffsetLerpTime;
+    }
+
+    /// <summary>
+    /// Находится ли сейчас игрок в активной зоне slide.
+    /// </summary>
+    public bool IsInActiveZone()
+    {
+        return isInActiveZone;
+    }
+
+    /// <summary>
+    /// Сбрасывает флаг активной зоны (например, при любом телепорте домой).
+    /// </summary>
+    public void SetInActiveZone(bool value)
+    {
+        isInActiveZone = value;
+
+        // По условию дизайна «секундный лимит» и состояние затухания скорости
+        // обновляются только при телепортациях домой (когда активная зона сбрасывается).
+        if (!isInActiveZone)
+        {
+            // Телепорт домой: пересчитываем лимит секунд и полностью сбрасываем состояние скольжения.
+            RecalculateEffectiveMinSeconds(true);
+        }
+    }
+
+    /// <summary>
+    /// Пересчитывает конечный лимит секунд затухания скорости с учётом уровня игрока.
+    /// При resetState=true дополнительно сбрасывает таймер и текущую скорость.
+    /// </summary>
+    private void RecalculateEffectiveMinSeconds(bool resetState)
+    {
+        int level = 0;
+        var storage = GameStorage.Instance;
+        if (storage != null)
+        {
+            level = storage.GetPlayerSpeedLevel();
+        }
+        lastSpeedLevel = level;
+        effectiveMinSeconds = Mathf.Max(1f, minSecondsLimit + addSecondsByLevel * level);
+
+        if (resetState)
+        {
+            slideElapsedTime = 0f;
+            currentSlideSpeed = slideSpeed;
+        }
     }
 }

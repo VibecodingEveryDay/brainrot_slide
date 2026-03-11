@@ -10,7 +10,7 @@ using System;
 /// </summary>
 public class ShopSpeedManager : MonoBehaviour
 {
-    private const int MAX_LEVEL = 60; // Максимальный уровень скорости
+    private const int MAX_LEVEL = 90; // Максимальный уровень скорости
     
     [Header("Speed Upgrade Settings")]
     [Tooltip("Стартовый уровень скорости игрока (устанавливается при первом запуске, если текущий уровень = 0)")]
@@ -30,6 +30,12 @@ public class ShopSpeedManager : MonoBehaviour
     [Header("Debug")]
     [Tooltip("Показывать отладочные сообщения в консоли")]
     [SerializeField] private bool debug = false;
+
+    [Header("Dev Mode")]
+    [Tooltip("Если включено — уровень скорости игрока форсируется на заданный dev-уровень (игнорируя прогресс). Использовать только для отладки.")]
+    [SerializeField] private bool devMode = false;
+    [Tooltip("Уровень скорости в dev-режиме (0–60), который автоматически выставляется при старте сцены.")]
+    [SerializeField] private int devSpeedLevel = 10;
     
     [System.Serializable]
     public class SpeedBar
@@ -56,8 +62,8 @@ public class ShopSpeedManager : MonoBehaviour
     
     private void Reset()
     {
-        levelPrices = new long[61];
-        for (int i = 0; i < 61; i++)
+        levelPrices = new long[91];
+        for (int i = 0; i < 91; i++)
             levelPrices[i] = -1;
     }
     
@@ -113,7 +119,7 @@ public class ShopSpeedManager : MonoBehaviour
         // Инициализируем массив цен, если он не инициализирован
         if (levelPrices == null)
         {
-            levelPrices = new long[61];
+            levelPrices = new long[91];
             // Инициализируем все цены как -1 (не указано)
             for (int i = 0; i < levelPrices.Length; i++)
             {
@@ -124,11 +130,11 @@ public class ShopSpeedManager : MonoBehaviour
                 Debug.Log("[ShopSpeedManager] Массив levelPrices инициализирован как null");
             }
         }
-        else if (levelPrices.Length != 61)
+        else if (levelPrices.Length != 91)
         {
             // Если длина не 61, создаем новый массив и копируем существующие значения
             long[] oldPrices = levelPrices;
-            levelPrices = new long[61];
+            levelPrices = new long[91];
             for (int i = 0; i < levelPrices.Length; i++)
             {
                 if (i < oldPrices.Length)
@@ -188,7 +194,26 @@ public class ShopSpeedManager : MonoBehaviour
         if (gameStorage != null)
         {
             int currentLevel = gameStorage.GetPlayerSpeedLevel();
-            if (currentLevel == 0 && startingSpeedLevel > 0)
+
+            // Dev Mode: жёстко выставляем уровень скорости, игнорируя сохранённый прогресс.
+            if (devMode)
+            {
+                int clampedDevLevel = Mathf.Clamp(devSpeedLevel, 0, MAX_LEVEL);
+                gameStorage.SetPlayerSpeedLevel(clampedDevLevel);
+                gameStorage.Save();
+                if (debug)
+                {
+                    Debug.Log($"[ShopSpeedManager] DevMode ON: форсируем уровень скорости = {clampedDevLevel} (старый уровень: {currentLevel})");
+                }
+                
+                // Обновляем скорость игрока
+                if (playerController != null)
+                {
+                    playerController.RefreshSpeedFromLevel();
+                }
+            }
+            // Обычное поведение: один раз задаём стартовый уровень, если ещё не инициализирован.
+            else if (currentLevel == 0 && startingSpeedLevel > 0)
             {
                 gameStorage.SetPlayerSpeedLevel(startingSpeedLevel);
                 gameStorage.Save();

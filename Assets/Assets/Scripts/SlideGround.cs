@@ -16,11 +16,11 @@ public class SlideGround : MonoBehaviour
     public void OnPlayerEnter(Collider other)
     {
         if (other == null || !other.CompareTag("Player")) return;
+        if (SlideManager.Instance != null)
+            SlideManager.Instance.EnterSlide(transform, tiltAngleX);
         var controller = other.GetComponent<ThirdPersonController>();
         if (controller != null)
             controller.EnterSlide();
-        if (SlideManager.Instance != null)
-            SlideManager.Instance.EnterSlide(transform, tiltAngleX);
     }
     
     /// <summary>
@@ -43,11 +43,11 @@ public class SlideGround : MonoBehaviour
     {
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player == null) return;
+        if (SlideManager.Instance != null)
+            SlideManager.Instance.EnterSlide(transform, tiltAngleX);
         var controller = player.GetComponent<ThirdPersonController>();
         if (controller != null)
             controller.EnterSlide();
-        if (SlideManager.Instance != null)
-            SlideManager.Instance.EnterSlide(transform, tiltAngleX);
     }
     
     /// <summary>

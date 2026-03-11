@@ -1,0 +1,21 @@
+BotSlideSpawner + BotSlideBehavior — настройка в Unity
+=====================================================
+
+1. Тег Bot
+   В ProjectSettings уже есть тег "Bot". Назначьте его корню префаба бота.
+
+2. Префаб бота
+   - Скопируйте префаб игрока (та же модель и анимации).
+   - На корень: добавьте BotSlideBehavior, CharacterController, коллайдер (для RedCone).
+   - Установите тег "Bot".
+   - В BotSlideBehavior оставьте slidePlane пустым — его задаёт спавнер через Init.
+   - В аниматоре используйте только анимацию slide; параметр (например Speed) укажите в slideAnimatorParameter.
+
+3. Сцена
+   - Создайте пустой объект с BotSlideSpawner.
+   - Назначьте: Bot Prefab, Spawn Interval Min/Max, Slide Plane (Transform платформы слайда, как у SlideGround), Tilt Angle X, Slide Speed Min/Max.
+   - Опционально: Spawn Point — дочерний Transform в начале слайда (высокий Z), иначе спавн в position спавнера.
+   - Spawn X Min / Spawn X Max — диапазон по оси X для случайной позиции спавна (в мировых координатах); в сцене рисуется cyan Gizmos.
+
+4. RedCone
+   При входе коллайдера с тегом "Bot" бот уничтожается (без вызова TeleportManager).

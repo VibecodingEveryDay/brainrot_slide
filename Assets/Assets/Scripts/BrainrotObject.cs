@@ -497,6 +497,12 @@ public class BrainrotObject : InteractableObject
     private void PlayTakeSound()
     {
         if (takeSound == null) return;
+        
+        // В активной зоне slide звук не проигрываем — он должен звучать только после телепорта (новый брейнрот в руках).
+        SlideManager slideManager = SlideManager.Instance;
+        if (slideManager != null && slideManager.IsInActiveZone())
+            return;
+        
         float mult = (MusicManager.Instance != null) ? MusicManager.Instance.GetBrainrotSoundsVolumeMultiplier() : 1f;
         float vol = Mathf.Clamp01(takeSoundVolume * mult);
         var go = new GameObject("BrainrotTakeSound");

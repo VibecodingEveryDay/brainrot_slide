@@ -8,6 +8,8 @@ TagManager:
   - WallBall
   - StartFinish
   - Bot
+  - RedCone
+  - SlideMesh
   layers:
   - Default
   - TransparentFX
