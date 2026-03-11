@@ -715,29 +715,8 @@ public class BalanceNotifyAnimation : MonoBehaviour
             // Обновляем текст и текущее отображаемое значение
             if (balanceCountText != null && balanceCountText.gameObject.activeInHierarchy)
             {
-                // ВАЖНО: Сохраняем старое значение текста для проверки
-                string oldText = balanceCountText.text;
-                
-                // Обновляем текст
                 UpdateText(currentValue);
-                currentDisplayedValue = currentValue; // Обновляем текущее отображаемое значение во время анимации
-                
-                // ВАЖНО: Проверяем, что текст действительно обновился
-                string newText = balanceCountText.text;
-                if (oldText == newText && frameCount > 0 && Math.Abs(currentValue - fromValue) > 0.01)
-                {
-                    // Текст не изменился, но значение изменилось - принудительно обновляем
-                    Debug.LogWarning($"[BalanceNotifyAnimation] Текст не изменился во время анимации! oldText='{oldText}', newText='{newText}', currentValue={currentValue}. Принудительно обновляем через SetText и ForceMeshUpdate.");
-                    string formattedText = FormatBalanceWithMaxDigits(currentValue);
-                    formattedText = "+ " + formattedText;
-                    if (!string.IsNullOrEmpty(currencySuffix))
-                    {
-                        formattedText += currencySuffix;
-                    }
-                    balanceCountText.SetText(formattedText);
-                    balanceCountText.ForceMeshUpdate();
-                    Debug.Log($"[BalanceNotifyAnimation] После принудительного SetText и ForceMeshUpdate: '{balanceCountText.text}'");
-                }
+                currentDisplayedValue = currentValue;
             }
             else
             {
@@ -748,12 +727,9 @@ public class BalanceNotifyAnimation : MonoBehaviour
             }
             
             frameCount++;
-            // Логируем каждые 30 кадров (примерно раз в секунду при 30 FPS)
-            if (frameCount % 30 == 0)
-            {
-                Debug.Log($"[BalanceNotifyAnimation] Анимация: elapsedTime={elapsedTime:F2}с, normalizedTime={normalizedTime:F2}, currentValue={currentValue:F2}, текст: '{balanceCountText?.text ?? "null"}'");
-            }
-            
+            if (debug && frameCount % 30 == 0)
+                Debug.Log($"[BalanceNotifyAnimation] Анимация: elapsedTime={elapsedTime:F2}с, currentValue={currentValue:F2}, текст: '{balanceCountText?.text ?? "null"}'");
+
             yield return null;
         }
         
@@ -765,8 +741,9 @@ public class BalanceNotifyAnimation : MonoBehaviour
         UpdateText(toValue);
         currentDisplayedValue = toValue; // Обновляем текущее отображаемое значение
         
-        Debug.Log($"[BalanceNotifyAnimation] Анимация завершена: fromValue={fromValue}, toValue={toValue}, финальный текст: '{balanceCountText?.text ?? "null"}', currentDisplayedValue: {currentDisplayedValue}, elapsedTime: {elapsedTime:F2}с");
-        
+        if (debug)
+            Debug.Log($"[BalanceNotifyAnimation] Анимация завершена: fromValue={fromValue}, toValue={toValue}, текст: '{balanceCountText?.text ?? "null"}'");
+
         isAnimating = false;
         currentAnimation = null;
         
@@ -1038,36 +1015,16 @@ public class BalanceNotifyAnimation : MonoBehaviour
             if (!balanceCountText.gameObject.activeInHierarchy)
             {
                 balanceCountText.gameObject.SetActive(true);
-                Debug.Log($"[BalanceNotifyAnimation] balanceCount был неактивен перед SetText, активирован");
+                if (debug) Debug.Log("[BalanceNotifyAnimation] balanceCount был неактивен перед SetText, активирован");
             }
             
-            // ВАЖНО: Для TextMeshProUGUI используем SetText вместо .text =
-            // Это гарантирует правильное обновление текста
-            Debug.Log($"[BalanceNotifyAnimation] Устанавливаем текст в balanceCount: '{formattedText}', объект: {balanceCountText.gameObject.name}, активен: {balanceCountText.gameObject.activeInHierarchy}");
+            // Для TextMeshProUGUI используем SetText; при одинаковом formattedText TMP может оставить старый текст — это нормально при анимации (много значений дают один и тот же формат, напр. "+ 8.7K $").
+            if (debug)
+                Debug.Log($"[BalanceNotifyAnimation] Устанавливаем текст: '{formattedText}', объект: {balanceCountText.gameObject.name}");
             balanceCountText.SetText(formattedText);
-            
-            // ВАЖНО: Принудительно обновляем меш текста
             balanceCountText.ForceMeshUpdate();
-            
-            // ВАЖНО: Проверяем, что текст установился
-            string textAfterSet = balanceCountText.text ?? "";
-            Debug.Log($"[BalanceNotifyAnimation] После SetText: balanceCountText.text='{textAfterSet}', formattedText='{formattedText}', совпадают: {textAfterSet == formattedText}");
-            
-            // ВАЖНО: Принудительно обновляем текст, если он не изменился
-            // Это нужно для случаев, когда форматирование дает одинаковый результат
+
             string newText = balanceCountText.text ?? "";
-            if (newText == oldText && value > 0 && Math.Abs(value - currentDisplayedValue) > 0.01)
-            {
-                // Текст не изменился, но значение изменилось - принудительно обновляем через ForceMeshUpdate
-                balanceCountText.ForceMeshUpdate();
-                if (debug)
-                {
-                    Debug.LogWarning($"[BalanceNotifyAnimation] Текст не изменился после SetText, вызываем ForceMeshUpdate. value={value}, oldText='{oldText}', newText='{balanceCountText.text}'");
-                }
-            }
-            
-            // ВАЖНО: Проверяем, что текст установился
-            newText = balanceCountText.text ?? "";
             if (string.IsNullOrEmpty(newText))
             {
                 Debug.LogError($"[BalanceNotifyAnimation] Текст пустой после SetText! formattedText='{formattedText}', value={value}. Пытаемся установить еще раз.");
@@ -1076,22 +1033,18 @@ public class BalanceNotifyAnimation : MonoBehaviour
                 newText = balanceCountText.text ?? "";
             }
             
-            // Логируем каждое обновление текста для отладки
-            if (oldText != newText || value > 0 || debug)
-            {
-                Debug.Log($"[BalanceNotifyAnimation] UpdateText: value={value}, formattedText='{formattedText}', oldText='{oldText}', newText='{newText}', textChanged={oldText != newText}, textEmpty={string.IsNullOrEmpty(newText)}");
-            }
-            
-            // ВАЖНО: Если текст все еще не установился, принудительно устанавливаем еще раз
+            if (debug && (oldText != newText || value > 0))
+                Debug.Log($"[BalanceNotifyAnimation] UpdateText: value={value}, formattedText='{formattedText}', newText='{newText}'");
+
+            // Если текст не установился (редкий случай), пробуем ещё раз
             if (balanceCountText.text != formattedText && !string.IsNullOrEmpty(formattedText))
             {
                 // #region agent log
                 LogDebug("C", "UpdateText:textNotSet", "Текст не установился, пытаемся SetText еще раз", new { expected = formattedText, actual = balanceCountText.text });
                 // #endregion
-                Debug.LogWarning($"[BalanceNotifyAnimation] Текст не установился! Пытаемся установить еще раз. Ожидалось: '{formattedText}', получено: '{balanceCountText.text}'");
+                if (debug) Debug.LogWarning($"[BalanceNotifyAnimation] Текст не установился, повтор SetText. Ожидалось: '{formattedText}', получено: '{balanceCountText.text}'");
                 balanceCountText.SetText(formattedText);
                 balanceCountText.ForceMeshUpdate();
-                Debug.Log($"[BalanceNotifyAnimation] После повторного SetText и ForceMeshUpdate: '{balanceCountText.text}'");
             }
         }
         else

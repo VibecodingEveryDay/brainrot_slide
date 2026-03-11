@@ -32,6 +32,8 @@ public class GradePanel : MonoBehaviour
     [Header("UI")]
     [Tooltip("TextMeshPro компонент для отображения уровня (автоматически находится в дочернем объекте 'Level')")]
     [SerializeField] private TextMeshPro levelText;
+    [Tooltip("TextMeshPro компонент для отображения цены улучшения (автоматически находится в дочернем объекте 'Price')")]
+    [SerializeField] private TextMeshPro priceText;
     
     [Header("Настройки обнаружения игрока")]
     [Tooltip("Transform игрока (перетащите из иерархии, или будет найден автоматически по тегу 'Player')")]
@@ -102,6 +104,24 @@ public class GradePanel : MonoBehaviour
             else if (debug)
             {
                 Debug.LogWarning($"[GradePanel] Объект 'Level' не найден в дочерних объектах {gameObject.name}");
+            }
+        }
+
+        // Автоматически находим TextMeshPro компонент в дочернем объекте "Price"
+        if (priceText == null)
+        {
+            Transform priceTransform = transform.Find("Price");
+            if (priceTransform != null)
+            {
+                priceText = priceTransform.GetComponent<TextMeshPro>();
+                if (priceText == null && debug)
+                {
+                    Debug.LogWarning($"[GradePanel] TextMeshPro компонент не найден на объекте 'Price' в {gameObject.name}");
+                }
+            }
+            else if (debug)
+            {
+                Debug.LogWarning($"[GradePanel] Объект 'Price' не найден в дочерних объектах {gameObject.name}");
             }
         }
         
@@ -207,6 +227,9 @@ public class GradePanel : MonoBehaviour
         
         // Обновляем текст уровня (всегда, так как объект активен)
         UpdateLevelText();
+
+        // Обновляем текст цены улучшения
+        UpdatePriceText();
         
         // Обрабатываем клик мыши через Raycast (всегда, так как объект активен)
         HandleMouseClick();
@@ -436,6 +459,37 @@ public class GradePanel : MonoBehaviour
         }
         int nextLevel = currentLevel + 1;
         levelText.text = lang == "ru" ? $"{levelPrefix}.{currentLevel} -> {levelPrefix}.{nextLevel}" : $"({levelPrefix}.{currentLevel} -> {levelPrefix}.{nextLevel})";
+    }
+
+    /// <summary>
+    /// Обновляет текст цены улучшения брейнрота в формате "156K $" / "26.2M $".
+    /// </summary>
+    private void UpdatePriceText()
+    {
+        if (priceText == null)
+            return;
+
+        // Если нет размещённого брейнрота или Storage недоступен — очищаем цену.
+        if (placedBrainrot == null || GameStorage.Instance == null)
+        {
+            priceText.text = string.Empty;
+            return;
+        }
+
+        int currentLevel = placedBrainrot.GetLevel();
+        // Для максимального уровня цену не показываем.
+        if (currentLevel >= 20)
+        {
+            priceText.text = string.Empty;
+            return;
+        }
+
+        // Стоимость улучшения: финальный доход * 20 (та же формула, что в ProcessUpgrade).
+        double finalIncome = placedBrainrot.GetFinalIncome();
+        double upgradeCost = finalIncome * 20.0;
+
+        string formatted = GameStorage.Instance.FormatBalance(upgradeCost);
+        priceText.text = $"{formatted} $";
     }
     
     /// <summary>

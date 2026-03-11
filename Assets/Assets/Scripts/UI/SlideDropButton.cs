@@ -74,10 +74,23 @@ public class SlideDropButton : MonoBehaviour
         if (playerCarry == null)
             return;
 
-        if (playerCarry.GetCurrentCarriedObject() != null)
+        BrainrotObject carried = playerCarry.GetCurrentCarriedObject();
+        if (carried == null)
+            return;
+
+        // Удаляем брейнрот из сохранения (как в TrashPlacement)
+        if (GameStorage.Instance != null)
         {
-            playerCarry.DropObject();
+            string brainrotName = carried.GetObjectName();
+            if (!string.IsNullOrEmpty(brainrotName))
+            {
+                GameStorage.Instance.RemoveBrainrotByName(brainrotName);
+            }
         }
+
+        // Сначала освобождаем руки игрока, затем уничтожаем объект
+        playerCarry.DropObject();
+        Destroy(carried.gameObject);
     }
 
     private void FindPlayerCarry()

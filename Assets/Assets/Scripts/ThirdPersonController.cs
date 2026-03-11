@@ -90,6 +90,8 @@ public class ThirdPersonController : MonoBehaviour
     private bool isFalling = false;
     private float fallTime = 0f;
     private float ungroundedTimeMs = 0f;
+    // Зона AntiFly: внутри неё не включаем состояние полёта/падения и анимацию fly.
+    private bool inAntiFlyZone = false;
     
     // Ввод от джойстика (для мобильных устройств)
     private Vector2 joystickInput = Vector2.zero;
@@ -417,6 +419,13 @@ public class ThirdPersonController : MonoBehaviour
             isGroundedForAnimation = isActuallyGrounded && velocity.y <= 0.1f;
         }
         
+        // Внутри AntiFly-зоны запрещаем анимацию полёта, если игрок просто соскользнул/упал,
+        // но разрешаем её, если он сознательно прыгнул (isJumping).
+        if (inAntiFlyZone && !isJumping)
+        {
+            isGroundedForAnimation = true;
+        }
+        
         if (isGrounded && velocity.y < 0)
         {
             velocity.y = -2f;
@@ -673,8 +682,11 @@ public class ThirdPersonController : MonoBehaviour
     {
         bool wasFalling = isFalling;
         
-        // Время, пока персонаж находится не на земле (и не на лестнице, и не в slide)
-        bool inAir = !isGrounded && !isOnLadder && !isSliding;
+        // Время, пока персонаж находится не на земле (и не на лестнице, и не в slide).
+        // В зоне AntiFly считаем в воздухе только если игрок сознательно прыгнул (isJumping),
+        // а если просто соскользнул/упал — не включаем режим падения/полёта.
+        bool inAir = !isGrounded && !isOnLadder && !isSliding &&
+                     (!inAntiFlyZone || isJumping);
         
         if (inAir)
         {
@@ -1034,6 +1046,22 @@ public class ThirdPersonController : MonoBehaviour
     public bool IsFalling()
     {
         return isFalling;
+    }
+
+    /// <summary>
+    /// Включить/выключить режим AntiFly (игрок внутриAntiFlyTrigger).
+    /// Внутри зоны не переходим в состояние полёта/падения и не включаем анимацию fly.
+    /// </summary>
+    public void SetAntiFlyZone(bool value)
+    {
+        inAntiFlyZone = value;
+        if (value)
+        {
+            // Сбрасываем таймеры падения, чтобы сразу выйти из состояния fly.
+            isFalling = false;
+            fallTime = 0f;
+            ungroundedTimeMs = 0f;
+        }
     }
     
     /// <summary>

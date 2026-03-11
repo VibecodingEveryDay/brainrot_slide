@@ -53,6 +53,15 @@ public class SlideManager : MonoBehaviour
     [Tooltip("Когда камера сзади игрока (Z камеры > Z игрока), камера не может опуститься по Y ниже чем Y игрока + этот offset. Чтобы камера не уходила под наклонную плоскость.")]
     [SerializeField] private float cameraMinYOffsetWhenBehindPlayer = 0.5f;
 
+    [Header("Звук ветра во время slide")]
+    [Tooltip("Клип ветра (loop, 2D). Источник создаётся автоматически.")]
+    [SerializeField] private AudioClip windSoundClip;
+    [Tooltip("Громкость (0–1). Для ползунка в настройках вызови SetWindVolume(value).")]
+    [Range(0f, 1f)]
+    [SerializeField] private float windVolume = 0.5f;
+
+    private AudioSource _windSource;
+
     /// <summary> Плоскость скольжения (forward = направление, right = стрейф). Null = по умолчанию вперёд по миру. </summary>
     private Transform currentSlidePlane;
     private float currentSlideTiltAngleX;
@@ -84,7 +93,7 @@ public class SlideManager : MonoBehaviour
         Instance = this;
         EnsureVfxInstances();
     }
-    
+
     private void EnsureVfxInstances()
     {
         Transform sourceForSecond = null; // префаб/объект, из которого создать второй экземпляр, если slideVfx2 не задан
@@ -270,8 +279,24 @@ public class SlideManager : MonoBehaviour
             ApplyVfxScale(runtimeVfx2, vfxScale);
             runtimeVfx2.gameObject.SetActive(true);
         }
+
+        if (windSoundClip != null)
+        {
+            if (_windSource == null)
+            {
+                _windSource = GetComponent<AudioSource>();
+                if (_windSource == null)
+                    _windSource = gameObject.AddComponent<AudioSource>();
+                _windSource.playOnAwake = false;
+                _windSource.loop = true;
+                _windSource.spatialBlend = 0f;
+            }
+            _windSource.clip = windSoundClip;
+            _windSource.volume = windVolume;
+            _windSource.Play();
+        }
     }
-    
+
     /// <summary>
     /// Вызывается при выходе из зоны или при нажатии кнопки остановки.
     /// </summary>
@@ -284,8 +309,20 @@ public class SlideManager : MonoBehaviour
             runtimeVfx1.gameObject.SetActive(false);
         if (runtimeVfx2 != null)
             runtimeVfx2.gameObject.SetActive(false);
+        if (_windSource != null && _windSource.isPlaying)
+            _windSource.Stop();
     }
-    
+
+    /// <summary>
+    /// Громкость ветра (0–1). Вызови из ползунка: SetWindVolume(slider.value).
+    /// </summary>
+    public void SetWindVolume(float volume)
+    {
+        windVolume = Mathf.Clamp01(volume);
+        if (_windSource != null)
+            _windSource.volume = windVolume;
+    }
+
     /// <summary>
     /// Вызвать из OnClick кнопки остановки скольжения. Прерывает slide и телепортирует игрока на базу через TeleportManager (housePos).
     /// </summary>
