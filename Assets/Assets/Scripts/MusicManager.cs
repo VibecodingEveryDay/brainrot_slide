@@ -61,9 +61,20 @@ public class MusicManager : MonoBehaviour
     
     private void Start()
     {
-        // Всегда играем музыку лобби по кругу
+        LoadSavedVolume();
         PlayLobbyMusic();
     }
+    
+    private void LoadSavedVolume()
+    {
+        if (GameStorage.Instance == null) return;
+        float saved = GameStorage.Instance.GetMusicVolume();
+        if (saved >= 0f)
+            musicVolume = Mathf.Clamp01(saved);
+    }
+    
+    /// <summary>Текущая громкость (0–1).</summary>
+    public float GetVolume() => musicVolume;
     
     /// <summary>
     /// Совместимость с существующим кодом: больше не переключает музыку,

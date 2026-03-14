@@ -705,6 +705,72 @@ public class GameStorage : MonoBehaviour
     
     #endregion
     
+    #region Skin Methods (IAP)
+    
+    /// <summary>
+    /// ID текущего скина игрока ("" = скин по умолчанию; "skin_scarf", "skin_ninja", "skin_gold").
+    /// </summary>
+    public string GetCurrentSkinId()
+    {
+        return YG2.saves.currentSkinId ?? "";
+    }
+    
+    /// <summary>
+    /// Установить текущий скин и сохранить прогресс.
+    /// </summary>
+    public void SetCurrentSkinId(string skinId)
+    {
+        YG2.saves.currentSkinId = skinId ?? "";
+        Save();
+    }
+    
+    /// <summary>
+    /// Добавить скин в список купленных (после успешной покупки).
+    /// </summary>
+    public void AddOwnedSkinId(string skinId)
+    {
+        if (string.IsNullOrEmpty(skinId)) return;
+        if (YG2.saves.ownedSkinIds == null) YG2.saves.ownedSkinIds = new System.Collections.Generic.List<string>();
+        if (!YG2.saves.ownedSkinIds.Contains(skinId))
+        {
+            YG2.saves.ownedSkinIds.Add(skinId);
+            Save();
+        }
+    }
+    
+    /// <summary>
+    /// Проверить, куплен ли скин. Пустой/дефолтный скин считаем всегда купленным.
+    /// </summary>
+    public bool HasOwnedSkin(string skinId)
+    {
+        if (string.IsNullOrEmpty(skinId)) return true; // дефолт всегда "взят"
+        if (YG2.saves.ownedSkinIds == null) return false;
+        return YG2.saves.ownedSkinIds.Contains(skinId);
+    }
+    
+    #endregion
+    
+    #region Music Volume Methods
+    
+    /// <summary>
+    /// Получить сохранённую громкость музыки. -1 = «не задана» (использовать дефолт MusicManager).
+    /// </summary>
+    public float GetMusicVolume()
+    {
+        return YG2.saves.musicVolume;
+    }
+    
+    /// <summary>
+    /// Сохранить громкость музыки (0–1).
+    /// </summary>
+    public void SetMusicVolume(float volume)
+    {
+        YG2.saves.musicVolume = Mathf.Clamp(volume, 0f, 1f);
+        Save();
+    }
+    
+    #endregion
+    
     /// <summary>
     /// Отложенное применение стартового баланса в режиме разработчика.
     /// Ждёт загрузку YG2 и затем перезаписывает баланс, чтобы dev startBalance не затирался сохранением.
@@ -823,6 +889,14 @@ public class GameStorage : MonoBehaviour
         
         // Очищаем список убранных NPC (чтобы они снова показывались после очистки)
         YG2.saves.RemovedNpcGuyIds.Clear();
+        
+        // Сбрасываем скин игрока на значение по умолчанию
+        YG2.saves.currentSkinId = "";
+        if (YG2.saves.ownedSkinIds != null)
+            YG2.saves.ownedSkinIds.Clear();
+        
+        // Сбрасываем громкость на «не задана» — MusicManager применит свой дефолт из инспектора
+        YG2.saves.musicVolume = -1f;
         
         // Сохраняем изменения
         YG2.SaveProgress();

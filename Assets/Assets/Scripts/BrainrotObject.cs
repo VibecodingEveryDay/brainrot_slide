@@ -678,8 +678,6 @@ public class BrainrotObject : InteractableObject
         
         // Вызываем событие
         onPut.Invoke();
-        
-        Debug.Log($"[BrainrotObject] {objectName}: Объект размещен на позиции {position}, размещен на панели: {isPlacedOnPanel}, активен: {gameObject.activeSelf}");
     }
     
     /// <summary>

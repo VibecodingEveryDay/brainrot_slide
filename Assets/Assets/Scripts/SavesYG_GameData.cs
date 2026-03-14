@@ -67,6 +67,22 @@ namespace YG
         /// Ключи NPC (NpcGuy), которых убрали после покупки стены (не показывать снова).
         /// </summary>
         public List<string> RemovedNpcGuyIds = new List<string>();
+        
+        /// <summary>
+        /// ID текущего скина игрока (внутриигровая покупка). Пустая строка = скин по умолчанию.
+        /// Варианты: "skin_scarf", "skin_ninja", "skin_gold".
+        /// </summary>
+        public string currentSkinId = "";
+        
+        /// <summary>
+        /// ID купленных скинов (чтобы показывать ВЫБРАТЬ вместо КУПИТЬ). Дефолтный скин не храним — считаем всегда купленным.
+        /// </summary>
+        public List<string> ownedSkinIds = new List<string>();
+        
+        /// <summary>
+        /// Громкость музыки (0–1). Значение -1 означает «использовать дефолт из MusicManager».
+        /// </summary>
+        public float musicVolume = -1f;
     }
 }
 

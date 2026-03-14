@@ -1,5 +1,5 @@
 {
-    "balanceCount": 50280,
+    "balanceCount": 14931554,
     "balanceScaler": "",
     "Brainrots": [],
     "PlayerSpeedLevel": 10,
@@ -7,23 +7,58 @@
     "PlacedBrainrots": [
         {
             "placementID": 3,
-            "brainrotName": "TralaleroTralala",
-            "level": 2,
-            "rarity": "Rare",
-            "baseIncome": 95
+            "brainrotName": "GraipussMedussi",
+            "level": 3,
+            "rarity": "Common",
+            "baseIncome": 59
         },
         {
             "placementID": 4,
-            "brainrotName": "TorrtuginniDragonfrutini",
+            "brainrotName": "KarkerkarKurkur",
+            "level": 0,
+            "rarity": "Epic",
+            "baseIncome": 500
+        },
+        {
+            "placementID": 5,
+            "brainrotName": "TralaleroTralala",
             "level": 0,
             "rarity": "Rare",
-            "baseIncome": 61
+            "baseIncome": 500
+        },
+        {
+            "placementID": 0,
+            "brainrotName": "TralaleroTralala",
+            "level": 0,
+            "rarity": "Rare",
+            "baseIncome": 500
+        },
+        {
+            "placementID": 6,
+            "brainrotName": "KarkerkarKurkur",
+            "level": 5,
+            "rarity": "Epic",
+            "baseIncome": 25
+        },
+        {
+            "placementID": 11,
+            "brainrotName": "TralaleroTralala",
+            "level": 0,
+            "rarity": "Rare",
+            "baseIncome": 500
+        },
+        {
+            "placementID": 1,
+            "brainrotName": "TralaleroTralala",
+            "level": 0,
+            "rarity": "Rare",
+            "baseIncome": 500
         }
     ],
     "EarnPanelBalances": [
         {
             "panelID": 3,
-            "accumulatedBalance": 11400.0
+            "accumulatedBalance": 32568.0
         },
         {
             "panelID": 2,
@@ -31,7 +66,27 @@
         },
         {
             "panelID": 4,
-            "accumulatedBalance": 2440.0
+            "accumulatedBalance": 3475000.0
+        },
+        {
+            "panelID": 5,
+            "accumulatedBalance": 350000.0
+        },
+        {
+            "panelID": 0,
+            "accumulatedBalance": 340000.0
+        },
+        {
+            "panelID": 6,
+            "accumulatedBalance": 1035000.0
+        },
+        {
+            "panelID": 11,
+            "accumulatedBalance": 90000.0
+        },
+        {
+            "panelID": 1,
+            "accumulatedBalance": 2500.0
         }
     ],
     "AttackPowerLevel": 0,
@@ -39,6 +94,12 @@
     "UnlockedLadders": [],
     "HiddenWalls": [],
     "RemovedNpcGuyIds": [],
+    "currentSkinId": "skin_gold",
+    "ownedSkinIds": [
+        "skin_scarf",
+        "skin_gold"
+    ],
+    "musicVolume": 0.0,
     "intExample": 5,
     "strExample": "Hello!",
     "boolExample": [
@@ -47,5 +108,5 @@
         false,
         false
     ],
-    "idSave": 49321
+    "idSave": 52915
 }

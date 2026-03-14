@@ -21,6 +21,37 @@ MonoBehaviour:
     payingStatus: 0
   Localization:
     setLanguageMod: 1
+  Payments:
+    durationPayPanel: 1
+    testBuyFail: 0
+    purshases:
+    - id: skin_scarf
+      title: 
+      description: 
+      imageURI: 
+      price: 
+      priceValue: 
+      priceCurrencyCode: 
+      currencyImageURL: 
+      consumed: 0
+    - id: skin_ninja
+      title: 
+      description: 
+      imageURI: 
+      price: 
+      priceValue: 
+      priceCurrencyCode: 
+      currencyImageURL: 
+      consumed: 0
+    - id: skin_gold
+      title: 
+      description: 
+      imageURI: 
+      price: 
+      priceValue: 
+      priceCurrencyCode: 
+      currencyImageURL: 
+      consumed: 0
   Storage:
     saveLocal: 0
     saveCloud: 1
@@ -38,7 +69,7 @@ MonoBehaviour:
     loadSceneIfSDKLate: 0
     loadSceneIndex: 0
     initDelaySimulation: 0
-    buildNumber: 0
+    buildNumber: 29
   Simulation:
     device: 0
     language: en

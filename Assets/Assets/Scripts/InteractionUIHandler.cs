@@ -18,7 +18,7 @@ public class InteractionUIHandler : MonoBehaviour, IPointerDownHandler, IPointer
     [SerializeField] private CanvasGroup canvasGroup;
     
     [Header("Debug")]
-    [SerializeField] private bool debugMode = true; // Включено по умолчанию для диагностики
+    [SerializeField] private bool debugMode = false;
     
     private InteractableObject parentInteractableObject;
     private bool isPressed = false;
@@ -59,17 +59,10 @@ public class InteractionUIHandler : MonoBehaviour, IPointerDownHandler, IPointer
             Color color = radialImage.color;
             color.a = 0f;
             radialImage.color = color;
-            if (debugMode)
-            {
-                Debug.Log($"[InteractionUIHandler] Radial инициализирован: {radialImage.name}");
-            }
         }
-        else
+        else if (debugMode)
         {
-            if (debugMode)
-            {
-                Debug.LogWarning($"[InteractionUIHandler] Radial Image не найден!");
-            }
+            Debug.LogWarning($"[InteractionUIHandler] Radial Image не найден!");
         }
         
         // Получаем время взаимодействия от родительского объекта
@@ -798,8 +791,8 @@ public class InteractionUIHandler : MonoBehaviour, IPointerDownHandler, IPointer
                 }
             }
             
-            // Убеждаемся, что есть EventSystem в сцене
-            if (EventSystem.current == null)
+            // Убеждаемся, что есть EventSystem в сцене (проверяем и current, и FindFirstObjectByType, чтобы не создать дубликат)
+            if (EventSystem.current == null && FindFirstObjectByType<EventSystem>() == null)
             {
                 GameObject eventSystemObj = new GameObject("EventSystem");
                 eventSystemObj.AddComponent<EventSystem>();

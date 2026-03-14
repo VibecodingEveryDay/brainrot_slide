@@ -9,7 +9,10 @@ using TMPro;
 public class TextMeshProBillboard : MonoBehaviour
 {
     [Header("Настройки Billboard")]
-    [Tooltip("Поворачивать к игроку (true) или к камере (false)")]
+    [Tooltip("Привязка к камере: если включена, цель — объект с тегом MainCamera; иначе — игрок или камера по настройкам ниже")]
+    [SerializeField] private bool bindToCamera = false;
+    
+    [Tooltip("Поворачивать к игроку (true) или к камере (false). Учитывается только когда «Привязка к камере» выключена")]
     [SerializeField] private bool lookAtPlayer = true;
     
     [Tooltip("Поворачивать только по оси Y (горизонтально)")]
@@ -31,23 +34,28 @@ public class TextMeshProBillboard : MonoBehaviour
     [Tooltip("Частота обновления поворота (в кадрах). Больше значение = меньше обновлений")]
     [SerializeField] private int updateFrequency = 1;
     
+    [Tooltip("Использовать центр меша (bounds) для расчёта поворота. Рекомендуется включить, чтобы при любом pivot текст вращался вокруг своего визуального центра")]
+    [SerializeField] private bool useBoundsCenter = true;
+    
     private Transform targetTransform;
     private Transform myTransform;
+    private Renderer _renderer;
     private int frameCount = 0;
     private static Camera _cachedCamera;
     
     private void Awake()
     {
         myTransform = transform;
+        _renderer = GetComponent<Renderer>();
+        if (_renderer == null)
+            _renderer = GetComponentInChildren<Renderer>();
         
-        // Проверяем наличие TextMeshPro компонента
         TextMeshPro tmp = GetComponent<TextMeshPro>();
         if (tmp == null)
         {
             Debug.LogWarning($"[TextMeshProBillboard] {gameObject.name}: Компонент TextMeshPro не найден!");
         }
         
-        // Инициализируем цель для поворота
         InitializeTarget();
     }
     
@@ -62,9 +70,28 @@ public class TextMeshProBillboard : MonoBehaviour
     /// </summary>
     private void InitializeTarget()
     {
+        if (bindToCamera)
+        {
+            // Привязка к камере: цель — объект с тегом MainCamera
+            GameObject camObj = GameObject.FindGameObjectWithTag("MainCamera");
+            if (camObj != null)
+                targetTransform = camObj.transform;
+            else
+            {
+                if (_cachedCamera == null)
+                {
+                    _cachedCamera = Camera.main;
+                    if (_cachedCamera == null)
+                        _cachedCamera = FindFirstObjectByType<Camera>();
+                }
+                if (_cachedCamera != null)
+                    targetTransform = _cachedCamera.transform;
+            }
+            return;
+        }
+        
         if (lookAtPlayer)
         {
-            // Приоритет: прямая ссылка > поиск по тегу
             if (playerTransformReference != null)
             {
                 targetTransform = playerTransformReference;
@@ -75,9 +102,7 @@ public class TextMeshProBillboard : MonoBehaviour
                 {
                     GameObject player = GameObject.FindGameObjectWithTag(playerTag);
                     if (player != null)
-                    {
                         targetTransform = player.transform;
-                    }
                 }
                 catch (UnityException)
                 {
@@ -87,7 +112,6 @@ public class TextMeshProBillboard : MonoBehaviour
         }
         else
         {
-            // Поворачиваем к камере
             if (cameraTransformReference != null)
             {
                 targetTransform = cameraTransformReference;
@@ -128,8 +152,15 @@ public class TextMeshProBillboard : MonoBehaviour
         
         if (myTransform == null) return;
         
-        // Вычисляем направление от текста к цели
-        Vector3 directionToTarget = targetTransform.position - myTransform.position;
+        // Точка, относительно которой считаем направление: центр меша (визуальный центр текста) или pivot.
+        // Использование bounds.center даёт корректное вращение вокруг центра текста при любом pivot (в т.ч. у копий).
+        Vector3 rotationOrigin = myTransform.position;
+        if (useBoundsCenter && _renderer != null && _renderer.enabled)
+        {
+            rotationOrigin = _renderer.bounds.center;
+        }
+        
+        Vector3 directionToTarget = targetTransform.position - rotationOrigin;
         
         if (invertDirection)
         {

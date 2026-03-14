@@ -164,6 +164,15 @@ public class BalanceCountUI : MonoBehaviour
     }
     
     /// <summary>
+    /// Один раз проиграть пульсацию (увеличение/уменьшение масштаба). Вызывается из MoneyFlyToBalance при достижении спрайтами цели.
+    /// </summary>
+    public void PlayPulseOnce()
+    {
+        if (balanceText == null || isAnimating) return;
+        StartCoroutine(AnimateBalanceChange());
+    }
+
+    /// <summary>
     /// Принудительно обновить баланс (можно вызвать извне)
     /// </summary>
     public void RefreshBalance()

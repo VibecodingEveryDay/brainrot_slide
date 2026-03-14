@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -131,7 +132,11 @@ public class ThirdPersonController : MonoBehaviour
 
     // Блокировка движения назад (S), например, при контакте с BackBlocker пока он не осязаемый.
     private bool blockBackwardMovement;
-    
+
+    private GameObject _defaultSkinTemplate;
+    /// <summary>Скрытая копия начальной модели — используется SkinManager для возврата к дефолтному скину.</summary>
+    public GameObject DefaultSkinTemplate => _defaultSkinTemplate;
+
     private void Awake()
     {
         characterController = GetComponent<CharacterController>();
@@ -173,6 +178,14 @@ public class ThirdPersonController : MonoBehaviour
         }
         wallBallLayer = LayerMask.NameToLayer("WallBall");
         groundCheckLayerMask = wallBallLayer >= 0 ? (~0) & ~(1 << wallBallLayer) : ~0;
+
+        if (modelTransform != null)
+        {
+            _defaultSkinTemplate = Instantiate(modelTransform.gameObject);
+            _defaultSkinTemplate.name = "__DefaultSkinTemplate";
+            _defaultSkinTemplate.SetActive(false);
+            DontDestroyOnLoad(_defaultSkinTemplate);
+        }
     }
     
     private void Start()
@@ -648,6 +661,52 @@ public class ThirdPersonController : MonoBehaviour
         jumpRequestTime = Time.time;
     }
     
+    /// <summary>
+    /// Заменить модель игрока на префаб скина (для внутриигровых покупок).
+    /// Удаляет текущую дочернюю модель и создаёт экземпляр skinPrefab с Animator.
+    /// </summary>
+    public void ApplySkin(GameObject skinPrefab)
+    {
+        if (skinPrefab == null) return;
+        
+        Vector3 oldLocalPos = Vector3.zero;
+        Quaternion oldLocalRot = Quaternion.identity;
+        Vector3 oldLocalScale = Vector3.one;
+        if (modelTransform != null)
+        {
+            oldLocalPos = modelTransform.localPosition;
+            oldLocalRot = modelTransform.localRotation;
+            oldLocalScale = modelTransform.localScale;
+            // DestroyImmediate чтобы GetComponentInChildren не нашёл старый аниматор
+            DestroyImmediate(modelTransform.gameObject);
+            modelTransform = null;
+            animator = null;
+        }
+        
+        GameObject newModel = Instantiate(skinPrefab, transform);
+        newModel.SetActive(true);
+        newModel.transform.localPosition = oldLocalPos;
+        newModel.transform.localRotation = oldLocalRot;
+        newModel.transform.localScale = oldLocalScale;
+        
+        Animator newAnimator = newModel.GetComponentInChildren<Animator>();
+        if (newAnimator == null)
+            newAnimator = newModel.GetComponent<Animator>();
+        if (newAnimator == null)
+        {
+            Debug.LogWarning("[ThirdPersonController] ApplySkin: у префаба скина нет Animator. Префаб: " + skinPrefab.name);
+            return;
+        }
+        
+        modelTransform = newAnimator.transform;
+        animator = newAnimator;
+        animator.applyRootMotion = false;
+        animator.enabled = true;
+        InvalidateAnimParamCache();
+        
+        Debug.Log($"[ThirdPersonController] ApplySkin: модель '{skinPrefab.name}', animator='{animator.runtimeAnimatorController?.name}', параметров={animator.parameterCount}");
+    }
+    
     private void ApplyGravity()
     {
         // Проверяем, что CharacterController активен и не null
@@ -987,43 +1046,52 @@ public class ThirdPersonController : MonoBehaviour
         return isOnLadder;
     }
     
+    private HashSet<int> _animParamCache;
+    private Animator _animParamCacheOwner;
+    
+    private bool AnimatorHasParam(int nameHash)
+    {
+        if (animator == null || animator.runtimeAnimatorController == null) return false;
+        if (_animParamCacheOwner != animator || _animParamCache == null)
+        {
+            _animParamCache = new HashSet<int>();
+            foreach (var p in animator.parameters)
+                _animParamCache.Add(p.nameHash);
+            _animParamCacheOwner = animator;
+        }
+        return _animParamCache.Contains(nameHash);
+    }
+    
+    /// <summary> Сбросить кэш параметров аниматора (вызывать при смене аниматора/скина). </summary>
+    private void InvalidateAnimParamCache()
+    {
+        _animParamCache = null;
+        _animParamCacheOwner = null;
+    }
+    
     private void UpdateAnimator()
     {
-        if (animator != null)
-        {
-            // ВАЖНО: Проверяем, находится ли игрок в области дома
-            // Если да, не обновляем аниматор (отключаем анимацию)
-            if (IsPlayerInHouseArea())
-            {
-                // Игрок в области дома - не обновляем аниматор
-                return;
-            }
-            
-            // Обработка лестницы
+        if (animator == null) return;
+        
+        if (IsPlayerInHouseArea())
+            return;
+        
+        if (AnimatorHasParam(IsLadderHash))
             animator.SetBool(IsLadderHash, isOnLadder);
-            
-            // Управляем скоростью анимации на лестнице
-            // Если игрок на лестнице и не двигается — останавливаем анимацию в текущем кадре
-            if (isOnLadder)
-            {
-                animator.speed = ladderAnimatorSpeed;
-            }
-            else
-            {
-                // Скорость анимации: при беге — runAnimationSpeed, иначе нормальная
-                float targetSpeed = (currentSpeed > 0.1f) ? runAnimationSpeed : 1f;
-                if (Mathf.Abs(animator.speed - targetSpeed) > 0.001f)
-                {
-                    animator.speed = targetSpeed;
-                }
-            }
-            
-            // Обновляем параметр Speed
-            animator.SetFloat(SpeedHash, currentSpeed);
-            
-            // Обновляем параметр isGrounded в аниматоре, используя более быстрый флаг для визуального приземления
-            animator.SetBool(IsGroundedHash, isGroundedForAnimation);
+        
+        if (isOnLadder)
+            animator.speed = ladderAnimatorSpeed;
+        else
+        {
+            float targetSpeed = (currentSpeed > 0.1f) ? runAnimationSpeed : 1f;
+            if (Mathf.Abs(animator.speed - targetSpeed) > 0.001f)
+                animator.speed = targetSpeed;
         }
+        
+        if (AnimatorHasParam(SpeedHash))
+            animator.SetFloat(SpeedHash, currentSpeed);
+        if (AnimatorHasParam(IsGroundedHash))
+            animator.SetBool(IsGroundedHash, isGroundedForAnimation);
     }
     
     /// <summary>
@@ -1031,10 +1099,8 @@ public class ThirdPersonController : MonoBehaviour
     /// </summary>
     public void SetIsTaking(bool value)
     {
-        if (animator != null)
-        {
+        if (animator != null && AnimatorHasParam(IsTakingHash))
             animator.SetBool(IsTakingHash, value);
-        }
     }
     
     // Публичные методы для получения состояния (могут быть полезны для других скриптов)

@@ -122,6 +122,10 @@ public class BrainrotSellPlane : InteractableObject
         else
             Debug.LogError("[BrainrotSellPlane] GameStorage.Instance не найден!");
         
+        MoneyFlyToBalance flyToBalance = FindFirstObjectByType<MoneyFlyToBalance>();
+        if (flyToBalance != null)
+            flyToBalance.Play();
+        
         BalanceNotifyManager notifyManager = FindFirstObjectByType<BalanceNotifyManager>();
         if (notifyManager != null)
             notifyManager.UpdateNotificationImmediately(sellPrice);

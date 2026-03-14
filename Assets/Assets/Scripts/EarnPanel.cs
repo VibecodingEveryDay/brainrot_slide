@@ -632,6 +632,10 @@ public class EarnPanel : MonoBehaviour
                 // Используем сохраненное значение balanceToAdd
                 GameStorage.Instance.AddBalanceDouble(balanceToAdd);
                 
+                MoneyFlyToBalance flyToBalance = FindFirstObjectByType<MoneyFlyToBalance>();
+                if (flyToBalance != null)
+                    flyToBalance.Play();
+                
                 if (debug)
                 {
                     string balanceAfterFormatted = GameStorage.Instance.FormatBalance();
@@ -640,50 +644,25 @@ public class EarnPanel : MonoBehaviour
                 }
             }
             
-            // ВАЖНО: Обновляем уведомление о балансе сразу после сбора
-            // Это гарантирует, что уведомление покажет собранную сумму до того, как она обнулится
-            Debug.Log($"[EarnPanel] Ищу BalanceNotifyManager для обновления уведомления с суммой: {balanceToAdd}");
+            // Обновляем уведомление о балансе, если BalanceNotifyManager есть в сцене и активен
             BalanceNotifyManager notifyManager = FindFirstObjectByType<BalanceNotifyManager>();
             if (notifyManager == null)
             {
-                Debug.LogWarning("[EarnPanel] BalanceNotifyManager не найден через FindFirstObjectByType, пытаюсь найти через GameObject.Find...");
-                // Пытаемся найти через поиск по имени
                 GameObject managerObj = GameObject.Find("BalanceNotifyManager");
                 if (managerObj != null)
-                {
-                    Debug.Log($"[EarnPanel] Найден GameObject 'BalanceNotifyManager': {managerObj.name}, активен: {managerObj.activeInHierarchy}");
                     notifyManager = managerObj.GetComponent<BalanceNotifyManager>();
-                    if (notifyManager == null)
-                    {
-                        Debug.LogError("[EarnPanel] BalanceNotifyManager компонент не найден на GameObject 'BalanceNotifyManager'!");
-                    }
-                }
-                else
-                {
-                    Debug.LogError("[EarnPanel] GameObject 'BalanceNotifyManager' не найден в сцене!");
-                }
             }
-            else
+            if (notifyManager != null && notifyManager.gameObject.activeInHierarchy)
             {
-                Debug.Log($"[EarnPanel] BalanceNotifyManager найден через FindFirstObjectByType: {notifyManager.gameObject.name}, активен: {notifyManager.gameObject.activeInHierarchy}");
-            }
-            
-            if (notifyManager != null)
-            {
-                Debug.Log($"[EarnPanel] BalanceNotifyManager найден, вызываю UpdateNotificationImmediately с суммой: {balanceToAdd} (ID панели: {panelID})");
                 try
                 {
                     notifyManager.UpdateNotificationImmediately(balanceToAdd);
-                    Debug.Log($"[EarnPanel] UpdateNotificationImmediately вызван успешно для суммы: {balanceToAdd} (ID панели: {panelID})");
                 }
                 catch (System.Exception e)
                 {
-                    Debug.LogError($"[EarnPanel] Ошибка при вызове UpdateNotificationImmediately: {e.Message}\n{e.StackTrace}");
+                    if (debug)
+                        Debug.LogError($"[EarnPanel] Ошибка при вызове UpdateNotificationImmediately: {e.Message}\n{e.StackTrace}");
                 }
-            }
-            else
-            {
-                Debug.LogError("[EarnPanel] BalanceNotifyManager не найден! Уведомление не будет обновлено. Убедитесь, что BalanceNotifyManager существует в сцене.");
             }
             
             // Спавним эффект при сборе дохода

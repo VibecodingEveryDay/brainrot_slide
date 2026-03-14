@@ -1007,8 +1007,6 @@ public class PlacementPanel : InteractableObject
                 brainrotObject.GetBaseIncome()
             );
         }
-        
-        Debug.Log($"[PlacementPanel] Объект {brainrotObject.GetObjectName()} размещен на панели в позиции {placementPosition}, placedBrainrot установлен: {placedBrainrot != null}, isPlaced={brainrotObject.IsPlaced()}, isCarried={brainrotObject.IsCarried()}, ID панели: {panelID}");
     }
     
     /// <summary>

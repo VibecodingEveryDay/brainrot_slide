@@ -105,7 +105,6 @@ public class JoystickManager : MonoBehaviour
             {
                 joystickCanvas.gameObject.SetActive(false);
             }
-            Debug.Log("[JoystickManager] Desktop устройство - джойстик не создан");
             isInitialized = true;
             return;
         }

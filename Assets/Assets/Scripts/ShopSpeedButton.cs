@@ -52,11 +52,6 @@ public class ShopSpeedButton : MonoBehaviour
                 
                 // Рекурсивно ищем во всех объектах сцены
                 foundContainer = FindGameObjectInHierarchy(rootObjects, "SpeedModalContainer");
-                
-                if (foundContainer != null)
-                {
-                    Debug.Log($"[ShopSpeedButton] SpeedModalContainer найден через рекурсивный поиск: {foundContainer.name}, activeSelf={foundContainer.activeSelf}, activeInHierarchy={foundContainer.activeInHierarchy}");
-                }
             }
             
             // Метод 3: Ищем через поиск по тегу или компоненту ShopSpeedManager
@@ -65,60 +60,30 @@ public class ShopSpeedButton : MonoBehaviour
                 ShopSpeedManager speedManager = FindFirstObjectByType<ShopSpeedManager>();
                 if (speedManager != null)
                 {
-                    // Ищем родителя с именем, содержащим "Speed" или "Modal"
                     Transform parent = speedManager.transform;
                     while (parent != null)
                     {
                         if (parent.name.Contains("Speed") || parent.name.Contains("Modal") || parent.name.Contains("Container"))
                         {
                             foundContainer = parent.gameObject;
-                            Debug.Log($"[ShopSpeedButton] SpeedModalContainer найден через ShopSpeedManager: {parent.name}");
                             break;
                         }
                         parent = parent.parent;
                     }
-                    
-                    // Если не нашли по имени, используем прямой родитель ShopSpeedManager
                     if (foundContainer == null && speedManager.transform.parent != null)
-                    {
                         foundContainer = speedManager.transform.parent.gameObject;
-                        Debug.Log($"[ShopSpeedButton] SpeedModalContainer найден как родитель ShopSpeedManager: {foundContainer.name}");
-                    }
                 }
             }
             
             if (foundContainer != null)
-            {
                 speedModalContainer = foundContainer;
-                Debug.Log($"[ShopSpeedButton] SpeedModalContainer найден автоматически: {foundContainer.name}, activeSelf={foundContainer.activeSelf}, activeInHierarchy={foundContainer.activeInHierarchy}");
-            }
             else
-            {
                 Debug.LogError("[ShopSpeedButton] SpeedModalContainer не найден! Убедитесь, что объект существует в сцене с именем 'SpeedModalContainer' или назначьте его вручную в инспекторе.");
-            }
-        }
-        else
-        {
-            Debug.Log($"[ShopSpeedButton] SpeedModalContainer назначен вручную: {speedModalContainer.name}");
-        }
-        
-        // Проверяем коллайдер
-        Collider col = GetComponent<Collider>();
-        if (col != null)
-        {
-            Debug.Log($"[ShopSpeedButton] Collider найден: isTrigger={col.isTrigger}, enabled={col.enabled}");
-        }
-        else
-        {
-            Debug.LogError("[ShopSpeedButton] Collider не найден! Добавьте Collider к объекту.");
         }
         
         // Скрываем контейнер при старте, если требуется
         if (speedModalContainer != null && hideOnStart)
-        {
             speedModalContainer.SetActive(false);
-            Debug.Log("[ShopSpeedButton] SpeedModalContainer скрыт при старте");
-        }
     }
     
     /// <summary>

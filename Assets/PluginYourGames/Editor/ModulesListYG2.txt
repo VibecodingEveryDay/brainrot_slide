@@ -1,4 +1,5 @@
 Authorization v1.022
 EnvirData v1.0031
 Localization v1.02
+Payments v1.01
 Storage v1.021
